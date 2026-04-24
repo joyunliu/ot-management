@@ -257,55 +257,67 @@ const ASSESS_TOOLS = {
 
 // Developmental milestones by age group
 const MILESTONES = {
-  '0-12m': {
-    title:'0-12個月',
-    gross:['俯臥時能抬頭','能翻身（前後）','能獨坐','能爬行','能扶站'],
-    fine:['能抓握物品','能換手拿物','拇食指對捏','能拍打物品'],
-    cognitive:['對聲音有反應','認得主要照顧者','物體恆存概念','模仿簡單動作'],
-    social:['社會性微笑','互動性發聲','分離焦慮出現'],
-    selfcare:['能自行進食手指食物','配合穿衣']
-  },
-  '1-2y': {
-    title:'1-2歲',
-    gross:['能獨走','能蹲下撿東西','能上下樓梯（扶）','能踢球'],
-    fine:['能疊積木2-4塊','能塗鴉','能翻書頁','能拿湯匙'],
-    cognitive:['能指認身體部位','能完成形狀配對','假扮遊戲出現','理解簡單指令'],
-    social:['平行遊戲','能表達需求','情緒自我調節萌芽'],
-    selfcare:['能用杯子喝水','能脫鞋子','如廁訓練開始']
-  },
-  '2-3y': {
-    title:'2-3歲',
-    gross:['能跑步','能跳躍（雙腳）','能騎三輪車','能單腳站2秒'],
-    fine:['能疊積木6塊以上','能模仿畫圓','能穿珠子','能使用剪刀'],
-    cognitive:['能說出顏色名稱','能數1-10','理解大小概念','能完成3步驟指令'],
-    social:['平行轉聯合遊戲','能等待輪流','表達多種情緒'],
-    selfcare:['能自行用湯匙','能自己穿脫鞋子','如廁訓練完成']
-  },
-  '3-4y': {
-    title:'3-4歲',
-    gross:['能單腳跳','能接球','能走平衡木','能爬梯子'],
-    fine:['三指握筆','能模仿畫十字','能扣大鈕扣','能使用剪刀剪直線'],
-    cognitive:['能分類物品','理解因果關係','能說完整句子','認識基本顏色形狀'],
-    social:['合作遊戲','能遵守簡單規則','能與同儕互動'],
-    selfcare:['能自行穿衣（簡單）','能自己刷牙','能獨立如廁']
-  },
-  '4-6y': {
-    title:'4-6歲',
-    gross:['單腳站5秒以上','能跳繩','能騎腳踏車（輔助輪）','能接/拍球'],
-    fine:['能畫人形','能寫自己名字','能剪曲線','能使用筷子'],
-    cognitive:['能數到20','理解時間概念','能排序','開始認字'],
-    social:['合作遊戲','了解遊戲規則','能控制情緒','能交朋友'],
-    selfcare:['能自行穿衣','能整理書包','能獨立吃飯']
-  },
-  '6-12y': {
-    title:'6-12歲',
-    gross:['協調運動技巧成熟','能參與球類運動','平衡感良好','能游泳/騎車'],
-    fine:['書寫速度與品質','剪貼技巧熟練','能使用各種工具','手眼協調良好'],
-    cognitive:['邏輯推理發展','學科概念建立','注意力維持20分鐘以上','工作記憶發展'],
+  '0-6m':{title:'0-6個月',
+    gross:['俯趴時能抬頭45度','俯趴時能抬頭90度','拉坐時頭部跟上','扶坐頭部穩定','翻身（仰臥→側躺）'],
+    fine:['雙手握拳','能抓握放置手中物品','雙手中線接觸','主動伸手抓物','能將物品放入口中'],
+    cognitive:['對聲音有反應','眼睛追視移動物體','辨認主要照顧者臉孔','注視自己雙手'],
+    social:['社會性微笑','與人互動時發聲','對逗弄有反應'],
+    selfcare:['吸吮反射正常','哺乳/餵食協調']},
+  '6-12m':{title:'6-12個月',
+    gross:['能獨坐（不需支撐）','腹部貼地爬行','四肢爬行','扶物站立','沿家具移步'],
+    fine:['換手拿物','拇食指對捏（小鉗式）','食指戳物','主動放開物品','雙手各拿一物敲擊'],
+    cognitive:['物體恆存概念','模仿動作（拍手、揮手）','找尋藏起的玩具','理解「不可以」'],
+    social:['分離焦慮出現','陌生人焦慮','玩躲貓貓遊戲','模仿簡單聲音'],
+    selfcare:['能自行拿餅乾吃','配合穿衣（伸手/腳）','開始用杯喝水']},
+  '1-1.5y':{title:'1-1.5歲',
+    gross:['獨立行走','蹲下撿東西再站起','爬上/下矮沙發','推拉玩具行走'],
+    fine:['疊積木2-3塊','放小珠入瓶','翻書頁（多頁一起）','塗鴉（亂線）'],
+    cognitive:['指認身體部位2-3個','理解簡單指令（給我/放進去）','功能性玩物（用梳子梳頭）','配對相同物品'],
+    social:['平行遊戲','指物要求','模仿日常動作（掃地/打電話）'],
+    selfcare:['能用湯匙（會灑）','脫鞋/帽子','配合擦臉/洗手']},
+  '1.5-2y':{title:'1.5-2歲',
+    gross:['跑步（但常跌倒）','踢靜止的球','上樓梯（扶扶手，雙腳同階）','從矮處跳下'],
+    fine:['疊積木4-6塊','翻單頁書頁','模仿畫直線','穿大珠子'],
+    cognitive:['指認圖片中物品','理解兩步驟指令','開始假扮遊戲（餵玩偶）','配對顏色（不一定說出名稱）'],
+    social:['平行遊戲增加','開始與同儕短暫互動','模仿同伴遊戲'],
+    selfcare:['湯匙使用改善','脫簡單衣物','如廁訓練開始','洗手需協助']},
+  '2-2.5y':{title:'2-2.5歲',
+    gross:['跑步穩定','單腳站1-2秒','雙腳跳（原地）','上下樓梯交替步（需扶）'],
+    fine:['疊積木6-8塊','模仿畫圓形','穿小珠子','使用剪刀（初步）'],
+    cognitive:['說出2-3種顏色','數數1-5','理解大/小、多/少','完成3片拼圖'],
+    social:['聯合遊戲開始','輪流等待（短暫）','表達基本情緒','與同伴簡單對話'],
+    selfcare:['獨立用湯匙進食','脫褲子','如廁能表達需求','洗手步驟需提示']},
+  '2.5-3y':{title:'2.5-3歲',
+    gross:['單腳站3-5秒','踩三輪車','投擲球有方向','上下樓梯交替步（不扶）'],
+    fine:['模仿畫十字','剪斷紙條','疊積木8塊以上','翻單頁書'],
+    cognitive:['說出4-5種顏色','數數1-10','理解今天/明天','完成4-6片拼圖','說出全名'],
+    social:['合作遊戲萌芽','遵守簡單遊戲規則','表達多種情緒','開始角色扮演'],
+    selfcare:['穿脫鞋子','拉上/下拉鍊','如廁自立（偶需協助）','刷牙需監督']},
+  '3-4y':{title:'3-4歲',
+    gross:['單腳跳','接球（大球）','走平衡木（寬）','爬梯子'],
+    fine:['三指握筆','模仿畫正方形','剪直線','扣大鈕扣','握剪刀剪曲線'],
+    cognitive:['說出5種以上顏色','理解「昨天/今天/明天」','分類物品（顏色/形狀）','說出完整的故事情節'],
+    social:['合作遊戲','遵守規則','與同儕解決衝突','扮家家酒'],
+    selfcare:['自行穿脫簡單衣物','獨立如廁','洗手獨立','用叉子進食']},
+  '4-5y':{title:'4-5歲',
+    gross:['單腳站10秒以上','跳繩（初步）','接/拋小球','跑跳協調'],
+    fine:['模仿畫三角形','寫自己名字（初步）','剪複雜形狀','使用筷子（初步）','繫鞋帶（初步）'],
+    cognitive:['認識數字1-10','認識簡單國字','理解時間先後','分類多重屬性'],
+    social:['合作完成任務','了解他人感受','遵守複雜遊戲規則','交到朋友'],
+    selfcare:['自行穿脫衣物','繫扣子','整理書包（需提示）','獨立刷牙']},
+  '5-6y':{title:'5-6歲',
+    gross:['跳繩連續','單腳跳10下以上','騎腳踏車（輔助輪）','各種球類初步'],
+    fine:['模仿畫菱形','書寫基本筆畫','剪複雜圖案','使用筷子穩定','繫鞋帶'],
+    cognitive:['認識注音/英文字母','數到20以上','理解加減概念','閱讀簡單文字'],
+    social:['穩定友誼關係','情緒自我調節','合作解決問題','理解規則公平性'],
+    selfcare:['完全自理穿衣','整理個人物品','時間概念萌芽','洗澡需監督']},
+  '6y+':{title:'6歲以上',
+    gross:['協調運動技巧成熟','參與球類運動','平衡感良好','騎腳踏車（無輔助輪）'],
+    fine:['書寫速度與品質','各種工具操作','手眼協調成熟','精細動作靈巧'],
+    cognitive:['邏輯推理','學科概念建立','注意力維持20分鐘以上','工作記憶發展'],
     social:['同儕關係建立','合作解決問題','情緒調節','自我概念發展'],
-    selfcare:['完全獨立自理','整理個人物品','時間管理萌芽']
-  }
-};
+    selfcare:['完全獨立自理','整理個人物品','時間管理萌芽','獨立洗澡']}
+};};
 
 // ══════════════════════════════════════════════════
 // STATE
@@ -342,7 +354,7 @@ async function sheetClear(range){const t=await getAccessToken();await fetch(`htt
 
 async function initSheets(){
   const sheets=[
-    {name:'個案',h:['id','name','dob','diagnosis','guardian','phone','sessions','status','color','note']},
+    {name:'個案',h:['id','name','dob','gender','diagnosis','diagOther','guardian','phone','sessions','status','color','note']},
     {name:'預約',h:['id','caseId','date','time','duration','fee','note','status','type','groupSize','timeSlot']},
     {name:'目標',h:['id','caseId','area','goal','target','progress','status']},
     {name:'紀錄',h:['id','caseId','date','attendance','soapS','soapO','soapA','soapP','activities','parentNote','therapist']},
@@ -361,7 +373,7 @@ async function loadAll(){
     sheetGet('個案!A2:J999'),sheetGet('預約!A2:K999'),sheetGet('目標!A2:G999'),
     sheetGet('紀錄!A2:K999'),sheetGet('評估!A2:H999'),sheetGet('里程碑!A2:J999'),sheetGet('設定!A2:B99')
   ]);
-  DB.cases=cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',diagnosis:r[3]||'',guardian:r[4]||'',phone:r[5]||'',sessions:+r[6]||0,status:r[7]||'active',color:r[8]||COLORS[0],note:r[9]||''}));
+  DB.cases=cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',gender:r[3]||'',diagnosis:r[4]||'',diagOther:r[5]||'',guardian:r[6]||'',phone:r[7]||'',sessions:+r[8]||0,status:r[9]||'active',color:r[10]||COLORS[0],note:r[11]||''}));
   DB.appts=appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'}));
   DB.goals=goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'}));
   DB.notes=notes.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',attendance:r[3]||'present',soapS:r[4]||'',soapO:r[5]||'',soapA:r[6]||'',soapP:r[7]||'',activities:r[8]||'',parentNote:r[9]||'',therapist:r[10]||''}));
@@ -369,18 +381,18 @@ async function loadAll(){
   DB.milestones=milestones.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',ageGroup:r[3]||'',gross:r[4]||'',fine:r[5]||'',cognitive:r[6]||'',social:r[7]||'',selfcare:r[8]||'',notes:r[9]||''}));
   DB.settings={};settings.forEach(r=>{if(r[0])DB.settings[r[0]]=r[1]||'';});
   // default fee settings
-  if(!DB.settings.fee_assess_init)        DB.settings.fee_assess_init='3000';
-  if(!DB.settings.fee_assess_follow)     DB.settings.fee_assess_follow='2000';
-  if(!DB.settings.fee_individual_weekday) DB.settings.fee_individual_weekday='1200';
-  if(!DB.settings.fee_individual_weekend) DB.settings.fee_individual_weekend='1500';
-  if(!DB.settings.fee_group2_weekday)     DB.settings.fee_group2_weekday='900';
-  if(!DB.settings.fee_group2_weekend)     DB.settings.fee_group2_weekend='1100';
-  if(!DB.settings.fee_group3_weekday)     DB.settings.fee_group3_weekday='800';
-  if(!DB.settings.fee_group3_weekend)     DB.settings.fee_group3_weekend='1000';
+  if(!DB.settings.fee_assess_init_day)    DB.settings.fee_assess_init_day='3000';
+  if(!DB.settings.fee_assess_init_ew)     DB.settings.fee_assess_init_ew='3500';
+  if(!DB.settings.fee_assess_follow_day) DB.settings.fee_assess_follow_day='2000';
+  if(!DB.settings.fee_assess_follow_ew)  DB.settings.fee_assess_follow_ew='2500';
+  if(!DB.settings.fee_individual_day)    DB.settings.fee_individual_day='1200';
+  if(!DB.settings.fee_individual_ew)     DB.settings.fee_individual_ew='1500';
+  if(!DB.settings.fee_group_day)         DB.settings.fee_group_day='900';
+  if(!DB.settings.fee_group_ew)          DB.settings.fee_group_ew='1100';
 }
 
 const saveAll = (key) => ({
-  cases:  async()=>{await sheetClear('個案!A2:J999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.diagnosis,c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));},
+  cases:  async()=>{await sheetClear('個案!A2:L999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));},
   appts:  async()=>{await sheetClear('預約!A2:K999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot]));},
   goals:  async()=>{await sheetClear('目標!A2:G999');if(DB.goals.length)await sheetAppend('目標!A2',DB.goals.map(g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status]));},
   notes:  async()=>{await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));},
@@ -390,6 +402,7 @@ const saveAll = (key) => ({
 })[key];
 
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function toggleDiagOther(){const sel=document.getElementById('cf-diag-sel')?.value;const w=document.getElementById('cf-diag-other-wrap');if(w)w.style.display=sel==='其他（自行輸入）'?'block':'none';}
 function typeLabel(type,groupSize){return type==='group'?`👥團體${groupSize}人`:type==='assess_init'?'🔬初評':type==='assess_follow'?'🔬追蹤評估':'👤個別';}
 function toast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 function age(dob){if(!dob)return'–';const d=new Date(dob),n=new Date();let y=n.getFullYear()-d.getFullYear(),m=n.getMonth()-d.getMonth();if(n.getDate()<d.getDate())m--;if(m<0){y--;m+=12;}return y+'歲'+m+'個月';}
@@ -409,17 +422,17 @@ async function syncAll(){
 
 function getAgeGroup(dob){
   const m=ageMonths(dob);
-  if(m<12)return'0-12m';if(m<24)return'1-2y';if(m<36)return'2-3y';
-  if(m<48)return'3-4y';if(m<72)return'4-6y';return'6-12y';
+  if(m<6)return'0-6m';if(m<12)return'6-12m';if(m<18)return'1-1.5y';
+  if(m<24)return'1.5-2y';if(m<30)return'2-2.5y';if(m<36)return'2.5-3y';
+  if(m<48)return'3-4y';if(m<60)return'4-5y';if(m<72)return'5-6y';return'6y+';
 }
 
 function calcFee(type,groupSize,timeSlot){
   const s=DB.settings;
-  if(type==='assess_init')   return +s.fee_assess_init||3000;
-  if(type==='assess_follow') return +s.fee_assess_follow||2000;
-  if(type==='individual'){return timeSlot==='weekend'?+s.fee_individual_weekend:+s.fee_individual_weekday;}
-  if(groupSize<=2){return timeSlot==='weekend'?+s.fee_group2_weekend:+s.fee_group2_weekday;}
-  return timeSlot==='weekend'?+s.fee_group3_weekend:+s.fee_group3_weekday;
+  if(type==='assess_init')   return timeSlot==='evening_weekend'?+s.fee_assess_init_ew:+s.fee_assess_init_day;
+  if(type==='assess_follow') return timeSlot==='evening_weekend'?+s.fee_assess_follow_ew:+s.fee_assess_follow_day;
+  if(type==='individual'){return timeSlot==='evening_weekend'?+s.fee_individual_ew:+s.fee_individual_day;}
+  return timeSlot==='evening_weekend'?+s.fee_group_ew:+s.fee_group_day;
 }
 
 // ══════════════════════════════════════════════════
@@ -455,7 +468,7 @@ function renderDashboard(){
   const active=DB.cases.filter(c=>c.status==='active');
   const aG=DB.goals.filter(g=>g.status==='active');
   const avgP=aG.length?Math.round(aG.reduce((s,g)=>s+g.progress,0)/aG.length):0;
-  const upcoming=DB.appts.filter(a=>a.status==='upcoming').sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  const upcoming=DB.appts.filter(a=>a.status==='upcoming').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).slice(0,4);
   return`
   <div class="ptitle">今日總覽 ✨</div>
   <div class="psub">${now.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}</div>
@@ -515,7 +528,7 @@ function renderCaseCards(list){
       <span class="tag" style="background:${c.status==='active'?'var(--sage-l)':c.status==='pending'?'var(--gold-l)':'var(--border)'};color:${c.status==='active'?'var(--sage-d)':c.status==='pending'?'var(--gold)':'var(--muted)'}">${c.status==='active'?'治療中':c.status==='pending'?'待初評':'暫停'}</span></div>
     </div>
     <div style="font-size:11px;color:var(--navy-l);margin-bottom:2px">🔍 ${c.diagnosis||'–'}</div>
-    <div style="font-size:11px;color:var(--muted)">${age(c.dob)}歲 · ${c.sessions}次</div>
+    <div style="font-size:11px;color:var(--muted)">${age(c.dob)} · ${c.sessions}次</div>
   </div>`).join('');
 }
 function filterCases(q){const g=document.getElementById('caseGrid');if(g)g.innerHTML=renderCaseCards(DB.cases.filter(c=>c.name.includes(q)||c.diagnosis.includes(q)));}
@@ -526,7 +539,7 @@ function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='
 // ══════════════════════════════════════════════════
 function renderCaseDetail(){
   const c=currentCase;
-  const cA=DB.appts.filter(a=>a.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const cA=DB.appts.filter(a=>a.caseId===c.id).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
   const cG=DB.goals.filter(g=>g.caseId===c.id);
   const cN=DB.notes.filter(n=>n.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
   const cAs=DB.assessments.filter(a=>a.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -538,7 +551,7 @@ function renderCaseDetail(){
 
   if(currentCaseTab==='info'){
     body=`<div class="card info-grid">
-      ${[['姓名',c.name],['診斷',c.diagnosis||'–'],['生日',c.dob||'–'],['年齡',`${age(c.dob)} 歲`],['月齡',`${ageMonths(c.dob)} 個月`],['監護人',c.guardian||'–'],['電話',c.phone||'–'],['累計次數',`${c.sessions} 次`],['狀態',c.status==='active'?'治療中':c.status==='pending'?'待初評':'暫停'],['備註',c.note||'–']].map(([k,v])=>`<div><div class="ik">${k}</div><div class="iv">${v}</div></div>`).join('')}
+      ${[['姓名',c.name],['性別',c.gender==='male'?'男':c.gender==='female'?'女':'–'],['診斷',c.diagOther||c.diagnosis||'–'],['生日',c.dob||'–'],['年齡',age(c.dob)],['月齡',`${ageMonths(c.dob)} 個月`],['家長',c.guardian||'–'],['電話',c.phone||'–'],['累計次數',`${c.sessions} 次`],['狀態',c.status==='active'?'治療中':c.status==='pending'?'待初評':'暫停'],['備註',c.note||'–']].map(([k,v])=>`<div><div class="ik">${k}</div><div class="iv">${v}</div></div>`).join('')}
     </div>
     <div class="btn-row">
       <button class="btn btn-border" onclick="openCaseModal('${c.id}')">✏️ 編輯</button>
@@ -653,7 +666,7 @@ function renderCaseDetail(){
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
     <div class="av" style="width:48px;height:48px;background:${c.color};font-size:20px">${c.name[0]||'?'}</div>
     <div><div style="font-family:var(--fh);font-size:20px">${c.name}</div>
-    <div style="font-size:11px;color:var(--muted)">${c.diagnosis||'–'} · ${age(c.dob)}歲 · ${c.sessions}次 · $${totalInc.toLocaleString()}</div></div>
+    <div style="font-size:11px;color:var(--muted)">${c.diagnosis||'–'} · ${age(c.dob)} · ${c.sessions}次 · $${totalInc.toLocaleString()}</div></div>
   </div>
   <div class="tabs">${TABS.map(([k,l])=>`<button class="tab${currentCaseTab===k?' active':''}" onclick="currentCaseTab='${k}';render()">${l}</button>`).join('')}</div>
   ${body}`;
@@ -758,39 +771,44 @@ function renderSettings(){
   <div class="ptitle">收費設定 ⚙️</div>
   <div class="psub">依課程類型與時段設定費用</div>
   <div class="card">
-    <div class="stitle">🔬 評估費用</div>
-    <div class="frow">
-      <div class="fg"><label class="fl">初評費用</label><input class="fi" type="number" id="s-assess-init" value="${s.fee_assess_init||3000}"></div>
-      <div class="fg"><label class="fl">追蹤評估</label><input class="fi" type="number" id="s-assess-follow" value="${s.fee_assess_follow||2000}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <div></div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted)">平日白天</div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted)">平日晚上/假日</div>
     </div>
-    <div class="stitle" style="margin-top:8px">👤 個別課</div>
-    <div class="frow">
-      <div class="fg"><label class="fl">平日</label><input class="fi" type="number" id="s-ind-wd" value="${s.fee_individual_weekday||1200}"></div>
-      <div class="fg"><label class="fl">假日</label><input class="fi" type="number" id="s-ind-we" value="${s.fee_individual_weekend||1500}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600">🔬 初評</div>
+      <input class="fi" type="number" id="s-ai-day" value="${s.fee_assess_init_day||3000}">
+      <input class="fi" type="number" id="s-ai-ew" value="${s.fee_assess_init_ew||3500}">
     </div>
-    <div class="stitle" style="margin-top:8px">👥 團體課（2人班）</div>
-    <div class="frow">
-      <div class="fg"><label class="fl">平日</label><input class="fi" type="number" id="s-g2-wd" value="${s.fee_group2_weekday||900}"></div>
-      <div class="fg"><label class="fl">假日</label><input class="fi" type="number" id="s-g2-we" value="${s.fee_group2_weekend||1100}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600">🔬 追蹤評估</div>
+      <input class="fi" type="number" id="s-af-day" value="${s.fee_assess_follow_day||2000}">
+      <input class="fi" type="number" id="s-af-ew" value="${s.fee_assess_follow_ew||2500}">
     </div>
-    <div class="stitle" style="margin-top:8px">👥 團體課（3人班）</div>
-    <div class="frow">
-      <div class="fg"><label class="fl">平日</label><input class="fi" type="number" id="s-g3-wd" value="${s.fee_group3_weekday||800}"></div>
-      <div class="fg"><label class="fl">假日</label><input class="fi" type="number" id="s-g3-we" value="${s.fee_group3_weekend||1000}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600">👤 個別課</div>
+      <input class="fi" type="number" id="s-ind-day" value="${s.fee_individual_day||1200}">
+      <input class="fi" type="number" id="s-ind-ew" value="${s.fee_individual_ew||1500}">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600">👥 團體課</div>
+      <input class="fi" type="number" id="s-grp-day" value="${s.fee_group_day||900}">
+      <input class="fi" type="number" id="s-grp-ew" value="${s.fee_group_ew||1100}">
     </div>
     <button class="btn btn-sage btn-full" onclick="saveSettings()">💾 儲存設定</button>
   </div>`;
 }
 
 async function saveSettings(){
-  DB.settings.fee_assess_init=document.getElementById('s-assess-init').value;
-  DB.settings.fee_assess_follow=document.getElementById('s-assess-follow').value;
-  DB.settings.fee_individual_weekday=document.getElementById('s-ind-wd').value;
-  DB.settings.fee_individual_weekend=document.getElementById('s-ind-we').value;
-  DB.settings.fee_group2_weekday=document.getElementById('s-g2-wd').value;
-  DB.settings.fee_group2_weekend=document.getElementById('s-g2-we').value;
-  DB.settings.fee_group3_weekday=document.getElementById('s-g3-wd').value;
-  DB.settings.fee_group3_weekend=document.getElementById('s-g3-we').value;
+  DB.settings.fee_assess_init_day=document.getElementById('s-ai-day').value;
+  DB.settings.fee_assess_init_ew=document.getElementById('s-ai-ew').value;
+  DB.settings.fee_assess_follow_day=document.getElementById('s-af-day').value;
+  DB.settings.fee_assess_follow_ew=document.getElementById('s-af-ew').value;
+  DB.settings.fee_individual_day=document.getElementById('s-ind-day').value;
+  DB.settings.fee_individual_ew=document.getElementById('s-ind-ew').value;
+  DB.settings.fee_group_day=document.getElementById('s-grp-day').value;
+  DB.settings.fee_group_ew=document.getElementById('s-grp-ew').value;
   toast('💾 儲存中…');await saveAll('settings')();toast('✅ 設定已儲存');
 }
 
@@ -824,15 +842,39 @@ window.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').f
 function openCaseModal(editId=null){
   const c=editId?DB.cases.find(x=>x.id===editId):null;
   document.getElementById('mc-title').textContent=c?'編輯個案':'新增個案';
+  const DIAGNOSES=['自閉症類群障礙（ASD）','發展遲緩','注意力不足過動症（ADHD）','腦性麻痺','唐氏症','感覺統合障礙','發展協調障礙（DCD）','智能障礙','語言發展遲緩','學習障礙','脊髓損傷','肌肉萎縮症','視覺障礙','聽覺障礙','其他（自行輸入）'];
   document.getElementById('mc-body').innerHTML=`
-  <div class="fg"><label class="fl">姓名 *</label><input class="fi" id="cf-name" value="${c?.name||''}" placeholder="個案姓名"></div>
+  <div class="frow">
+    <div class="fg"><label class="fl">姓名 *</label><input class="fi" id="cf-name" value="${c?.name||''}" placeholder="個案姓名"></div>
+    <div class="fg"><label class="fl">性別</label>
+      <select class="fsel" id="cf-gender">
+        <option value="">–</option>
+        <option value="male"${c?.gender==='male'?' selected':''}>男</option>
+        <option value="female"${c?.gender==='female'?' selected':''}>女</option>
+      </select>
+    </div>
+  </div>
   <div class="frow">
     <div class="fg"><label class="fl">生日</label><input class="fi" type="date" id="cf-dob" value="${c?.dob||''}"></div>
-    <div class="fg"><label class="fl">狀態</label><select class="fsel" id="cf-status"><option value="pending"${c?.status==='pending'?' selected':''}>待初評</option><option value="active"${c?.status==='active'?' selected':''}>治療中</option><option value="pause"${c?.status==='pause'?' selected':''}>暫停</option></select></div>
+    <div class="fg"><label class="fl">狀態</label>
+      <select class="fsel" id="cf-status">
+        <option value="pending"${c?.status==='pending'?' selected':''}>待初評</option>
+        <option value="active"${c?.status==='active'?' selected':''}>治療中</option>
+        <option value="pause"${c?.status==='pause'?' selected':''}>暫停</option>
+      </select>
+    </div>
   </div>
-  <div class="fg"><label class="fl">診斷</label><input class="fi" id="cf-diag" value="${c?.diagnosis||''}" placeholder="如：發展遲緩、ASD、感統障礙"></div>
+  <div class="fg"><label class="fl">診斷</label>
+    <select class="fsel" id="cf-diag-sel" onchange="toggleDiagOther()">
+      ${DIAGNOSES.map(d=>`<option value="${d}"${(c?.diagnosis===d||(!c?.diagnosis&&d==='發展遲緩'))?' selected':''}>${d}</option>`).join('')}
+    </select>
+  </div>
+  <div class="fg" id="cf-diag-other-wrap" style="display:${c?.diagnosis==='其他（自行輸入）'?'block':'none'}">
+    <label class="fl">請輸入診斷</label>
+    <input class="fi" id="cf-diag-other" value="${c?.diagOther||''}" placeholder="輸入診斷名稱">
+  </div>
   <div class="frow">
-    <div class="fg"><label class="fl">監護人</label><input class="fi" id="cf-guardian" value="${c?.guardian||''}"></div>
+    <div class="fg"><label class="fl">家長</label><input class="fi" id="cf-guardian" value="${c?.guardian||''}"></div>
     <div class="fg"><label class="fl">電話</label><input class="fi" id="cf-phone" value="${c?.phone||''}" type="tel"></div>
   </div>
   <div class="fg"><label class="fl">備註</label><textarea class="fta" id="cf-note">${c?.note||''}</textarea></div>
@@ -843,7 +885,9 @@ function openCaseModal(editId=null){
 async function submitCase(editId){
   const name=document.getElementById('cf-name').value.trim();
   if(!name){toast('❌ 請輸入姓名');return;}
-  const data={id:editId||newId(),name,dob:document.getElementById('cf-dob').value,diagnosis:document.getElementById('cf-diag').value,guardian:document.getElementById('cf-guardian').value,phone:document.getElementById('cf-phone').value,status:document.getElementById('cf-status').value,note:document.getElementById('cf-note').value};
+  const diagSel=document.getElementById('cf-diag-sel').value;
+  const diagOther=diagSel==='其他（自行輸入）'?document.getElementById('cf-diag-other').value:diagSel;
+  const data={id:editId||newId(),name,dob:document.getElementById('cf-dob').value,gender:document.getElementById('cf-gender').value,diagnosis:diagSel,diagOther:diagOther,guardian:document.getElementById('cf-guardian').value,phone:document.getElementById('cf-phone').value,status:document.getElementById('cf-status').value,note:document.getElementById('cf-note').value};
   if(editId){const idx=DB.cases.findIndex(c=>c.id===editId);data.sessions=DB.cases[idx].sessions;data.color=DB.cases[idx].color;DB.cases[idx]=data;if(currentCase?.id===editId)currentCase=data;}
   else{data.sessions=0;data.color=COLORS[DB.cases.length%COLORS.length];DB.cases.push(data);}
   closeModal('modal-case');toast('💾 儲存中…');await saveAll('cases')();toast('✅ 已儲存');render();
@@ -876,33 +920,31 @@ function openApptModal(prefillCaseId=''){
   </div>
   <div class="frow">
     <div class="fg"><label class="fl">課程類型</label>
-      <select class="fsel" id="af-type" onchange="toggleGroupSize();autoFillFee()">
+      <select class="fsel" id="af-type" onchange="autoFillFee()">
         <option value="individual">👤 個別課</option>
         <option value="group">👥 團體課</option>
         <option value="assess_init">🔬 初評</option>
         <option value="assess_follow">🔬 追蹤評估</option>
       </select>
     </div>
-    <div class="fg" id="groupSizeWrap" style="display:none"><label class="fl">人數</label>
-      <select class="fsel" id="af-gsize" onchange="autoFillFee()">
-        <option value="2">2人班</option><option value="3">3人班</option>
+    <div class="fg"><label class="fl">時段</label>
+      <select class="fsel" id="af-slot" onchange="autoFillFee()">
+        <option value="day">平日白天</option>
+        <option value="evening_weekend">平日晚上／假日</option>
       </select>
     </div>
   </div>
-  <div class="fg"><label class="fl">費用（元）</label><input class="fi" type="number" id="af-fee" value="${DB.settings.fee_individual_weekday||1200}"></div>
+  <div class="fg"><label class="fl">費用（元）</label><input class="fi" type="number" id="af-fee" value="${DB.settings.fee_individual_day||1200}"></div>
   <div class="fg"><label class="fl">治療內容</label><input class="fi" id="af-note" placeholder="如：精細動作訓練"></div>
   <button class="btn btn-peach btn-full" onclick="submitAppt()">📅 新增預約</button>`;
   openModal('modal-appt');
 }
 
-function toggleGroupSize(){const t=document.getElementById('af-type')?.value;const w=document.getElementById('groupSizeWrap');if(w)w.style.display=t==='group'?'block':'none';}
+function toggleGroupSize(){}
 function autoFillFee(){
   const type=document.getElementById('af-type')?.value||'individual';
-  const date=document.getElementById('af-date')?.value||'';
-  const gsize=+document.getElementById('af-gsize')?.value||2;
-  const isWE=date?[0,6].includes(new Date(date).getDay()):false;
-  const slot=isWE?'weekend':'weekday';
-  const fee=calcFee(type,gsize,slot);
+  const slot=document.getElementById('af-slot')?.value||'day';
+  const fee=calcFee(type,1,slot);
   const fi=document.getElementById('af-fee');if(fi)fi.value=fee;
 }
 
@@ -910,9 +952,8 @@ async function submitAppt(){
   const caseId=document.getElementById('af-case').value,date=document.getElementById('af-date').value;
   if(!caseId||!date){toast('❌ 請選擇個案和日期');return;}
   const type=document.getElementById('af-type').value;
-  const gsize=type==='group'?+document.getElementById('af-gsize').value:1;
-  const isWE=[0,6].includes(new Date(date).getDay());
-  const a={id:newId(),caseId,date,time:document.getElementById('af-time').value,duration:50,fee:+document.getElementById('af-fee').value||0,note:document.getElementById('af-note').value,status:'upcoming',type,groupSize:gsize,timeSlot:isWE?'weekend':'weekday'};
+  const slot=document.getElementById('af-slot')?.value||'day';
+  const a={id:newId(),caseId,date,time:document.getElementById('af-time').value,duration:50,fee:+document.getElementById('af-fee').value||0,note:document.getElementById('af-note').value,status:'upcoming',type,groupSize:1,timeSlot:slot};
   DB.appts.push(a);
   const cidx=DB.cases.findIndex(c=>c.id===caseId);if(cidx>=0)DB.cases[cidx].sessions++;
   closeModal('modal-appt');toast('💾 儲存中…');await Promise.all([saveAll('appts')(),saveAll('cases')()]);toast('✅ 預約已新增');render();
@@ -1019,78 +1060,124 @@ function editGoalProgress(id){openGoalModal(id);}
 async function deleteGoal(id){if(!confirm('確定刪除此目標？'))return;DB.goals=DB.goals.filter(g=>g.id!==id);toast('🗑 刪除中…');await saveAll('goals')();toast('✅ 已刪除');render();}
 
 // ── Note ──
-function openNoteModal(editId=null){
-  const n=editId?DB.notes.find(x=>x.id===editId):null;
-  soapActiveTab=n?'S':'S';
-  document.getElementById('mn-title').textContent=n?'編輯紀錄':`${currentCase?.name} · 新增紀錄`;
-  renderNoteModal(n);openModal('modal-note');
+function getSoapLabels(){
+  try{return JSON.parse(DB.settings.soapLabels||'null')||{
+    S:['家長主訴','個案狀態','情緒表現'],
+    O:['動作表現','感覺反應','配合度','注意力'],
+    A:['進步情形','待加強項目'],
+    P:['下次目標','回家作業','家長衛教']
+  };}catch(e){return{S:[],O:[],A:[],P:[]};}
+}
+async function saveSoapLabels(labels){
+  DB.settings.soapLabels=JSON.stringify(labels);
+  await saveAll('settings')();
 }
 
-function renderNoteModal(n=null){
+function openNoteModal(editId=null){
+  window._editNoteId=editId||null;
+  const n=editId?DB.notes.find(x=>x.id===editId):null;
+  document.getElementById('mn-title').textContent=n?'編輯紀錄':(currentCase?.name||'')+' · 新增紀錄';
+  const labels=getSoapLabels();
+  const today=new Date().toISOString().slice(0,10);
+  const SOAP_META={
+    S:{title:'S｜主觀',color:'var(--sage-d)',bg:'var(--sage-l)',ph:'家長主訴、個案今日狀態…',val:n?.soapS||''},
+    O:{title:'O｜客觀',color:'#5B78C9',bg:'#EBF0FC',ph:'觀察到的客觀表現…',val:n?.soapO||''},
+    A:{title:'A｜評估',color:'var(--peach)',bg:'var(--peach-l)',ph:'治療師評估與分析…',val:n?.soapA||''},
+    P:{title:'P｜計畫',color:'var(--lav)',bg:'var(--lav-l)',ph:'下次計畫、目標調整…',val:n?.soapP||''}
+  };
+  let soapHTML='';
+  ['S','O','A','P'].forEach(k=>{
+    const m=SOAP_META[k], kL=labels[k]||[];
+    soapHTML+=`<div class="fg" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:700;color:${m.color};background:${m.bg};padding:3px 10px;border-radius:20px">${m.title}</span>
+        <button onclick="openLabelMgr('${k}')" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer">⚙️ 標籤</button>
+      </div>
+      <div class="chip-group" id="chips-${k}">${kL.map(l=>`<button class="chip" onclick="appendChip('${k}','${l.replace(/'/g,"\\x27")}')">${l}</button>`).join('')}</div>
+      <div id="label-mgr-wrap-${k}"></div>
+      <textarea class="fta" id="nf-soap-${k}" placeholder="${m.ph}" rows="3">${m.val}</textarea>
+    </div>`;
+  });
   document.getElementById('mn-body').innerHTML=`
   <div class="frow">
-    <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${n?.date||new Date().toISOString().slice(0,10)}"></div>
+    <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${n?.date||today}"></div>
     <div class="fg"><label class="fl">治療師</label><input class="fi" id="nf-therapist" value="${n?.therapist||'治療師'}"></div>
   </div>
   <div class="fg"><label class="fl">出席狀態</label>
     <select class="fsel" id="nf-att">
-      <option value="present"${n?.attendance==='present'?' selected':''}>✅ 出席</option>
+      <option value="present"${(!n||n?.attendance==='present')?' selected':''}>✅ 出席</option>
       <option value="absent"${n?.attendance==='absent'?' selected':''}>❌ 缺課</option>
       <option value="late"${n?.attendance==='late'?' selected':''}>⏰ 遲到</option>
       <option value="makeup"${n?.attendance==='makeup'?' selected':''}>🔄 補課</option>
     </select>
   </div>
-  <div class="fg">
-    <label class="fl">SOAP 治療紀錄</label>
-    <div class="soap-tabs">
-      ${[['S','主觀','var(--sage-d)'],['O','客觀','#5B78C9'],['A','評估','var(--peach)'],['P','計畫','var(--lav)']].map(([k,l,col])=>
-        `<button class="soap-tab${soapActiveTab===k?' active':''}" onclick="soapActiveTab='${k}';renderSoapContent()" style="${soapActiveTab===k?`background:${col};border-color:${col}`:''}">
-          <span style="font-size:13px;font-weight:800">${k}</span><br><span style="font-size:9px">${l}</span>
-        </button>`).join('')}
-    </div>
-    <div id="soap-content"></div>
-  </div>
+  ${soapHTML}
   <div class="fg"><label class="fl">活動項目</label><input class="fi" id="nf-activities" value="${n?.activities||''}" placeholder="如：平衡板、黏土、剪紙"></div>
   <div class="fg"><label class="fl">家長聯絡事項</label><input class="fi" id="nf-parent" value="${n?.parentNote||''}" placeholder="回家作業、注意事項…"></div>
   <button class="btn btn-peach btn-full" onclick="submitNote('${n?.id||''}')">📝 ${n?'儲存修改':'儲存紀錄'}</button>`;
-  // store current note data for soap fields
-  window._noteData=n;
-  renderSoapContent();
+  openModal('modal-note');
 }
 
-function renderSoapContent(){
-  const n=window._noteData;
-  const placeholders={S:'家長主訴、個案今日狀態、情緒…',O:'觀察到的客觀表現、測量數值…',A:'治療師評估與分析…',P:'下次治療計畫、目標調整…'};
-  const vals={S:n?.soapS||'',O:n?.soapO||'',A:n?.soapA||'',P:n?.soapP||''};
-  const chipGroups={S:['attendance','cooperation'],O:['performance','sensory','motor'],A:['performance'],P:['homework']};
-  const groups=chipGroups[soapActiveTab]||[];
-  const el=document.getElementById('soap-content');if(!el)return;
-  el.innerHTML=`
-  ${groups.map(g=>`<div class="chip-group">${(CHIPS[g]||[]).map(c=>`<button class="chip" onclick="appendToSoap('${soapActiveTab}','${c.v.replace(/'/g,'\\\'')}')">${c.l}</button>`).join('')}</div>`).join('')}
-  <textarea class="fta" id="nf-soap-${soapActiveTab}" placeholder="${placeholders[soapActiveTab]}">${vals[soapActiveTab]}</textarea>`;
-  // update soap-tabs highlight
-  document.querySelectorAll('.soap-tab').forEach(t=>{
-    const k=t.querySelector('span')?.textContent;
-    t.classList.toggle('active',k===soapActiveTab);
-    const cols={S:'var(--sage-d)',O:'#5B78C9',A:'var(--peach)',P:'var(--lav)'};
-    if(k===soapActiveTab){t.style.background=cols[k];t.style.borderColor=cols[k];}
-    else{t.style.background='';t.style.borderColor='';}
-  });
-}
-
-function appendToSoap(tab,val){
-  const ta=document.getElementById(`nf-soap-${tab}`);if(!ta)return;
+function appendChip(k,val){
+  const ta=document.getElementById('nf-soap-'+k);if(!ta)return;
   ta.value+=(ta.value&&!ta.value.endsWith('\n')?'，':'')+val;ta.focus();
 }
 
+function openLabelMgr(k){
+  const labels=getSoapLabels();
+  const kLabels=labels[k]||[];
+  const wrap=document.getElementById('label-mgr-wrap-'+k);if(!wrap)return;
+  if(wrap.innerHTML){wrap.innerHTML='';return;}
+  const titles={S:'S 主觀',O:'O 客觀',A:'A 評估',P:'P 計畫'};
+  let html=`<div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border)">
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px">${titles[k]} 標籤管理</div>`;
+  kLabels.forEach((l,i)=>{
+    html+=`<div style="display:flex;gap:6px;margin-bottom:6px">
+      <input class="fi" style="flex:1;padding:6px 10px" value="${l}" onchange="updateLabelImm('${k}',${i},this.value)">
+      <button onclick="deleteLabel('${k}',${i})" style="background:var(--red-l);color:var(--red);border:none;border-radius:8px;padding:6px 10px;cursor:pointer">🗑</button>
+    </div>`;
+  });
+  html+=`<div style="display:flex;gap:6px;margin-top:8px">
+    <input class="fi" id="lm-new-${k}" placeholder="新增標籤…" style="flex:1;padding:8px 10px">
+    <button onclick="addLabel('${k}')" class="btn btn-sage btn-sm">+ 新增</button>
+  </div></div>`;
+  wrap.innerHTML=html;
+}
+
+async function addLabel(k){
+  const inp=document.getElementById('lm-new-'+k);if(!inp||!inp.value.trim())return;
+  const labels=getSoapLabels();
+  if(!labels[k])labels[k]=[];
+  labels[k].push(inp.value.trim());
+  await saveSoapLabels(labels);
+  openNoteModal(window._editNoteId);
+  openLabelMgr(k);
+}
+async function deleteLabel(k,i){
+  const labels=getSoapLabels();
+  labels[k].splice(i,1);
+  await saveSoapLabels(labels);
+  openNoteModal(window._editNoteId);
+  openLabelMgr(k);
+}
+function updateLabelImm(k,i,val){
+  const labels=getSoapLabels();
+  if(labels[k])labels[k][i]=val;
+  DB.settings.soapLabels=JSON.stringify(labels);
+}
+async function flushLabels(){await saveAll('settings')();}
+
 async function submitNote(editId){
-  const content=document.getElementById(`nf-soap-${soapActiveTab}`)?.value||'';
-  // collect all soap fields
-  const soapVals={S:'',O:'',A:'',P:''};
-  ['S','O','A','P'].forEach(k=>{const ta=document.getElementById(`nf-soap-${k}`);if(ta)soapVals[k]=ta.value;});
-  // preserve current tab value
-  soapVals[soapActiveTab]=document.getElementById(`nf-soap-${soapActiveTab}`)?.value||'';
-  const data={id:editId||newId(),caseId:currentCase.id,date:document.getElementById('nf-date').value,attendance:document.getElementById('nf-att').value,soapS:soapVals.S,soapO:soapVals.O,soapA:soapVals.A,soapP:soapVals.P,activities:document.getElementById('nf-activities').value,parentNote:document.getElementById('nf-parent').value,therapist:document.getElementById('nf-therapist').value};
+  const data={id:editId||newId(),caseId:currentCase.id,
+    date:document.getElementById('nf-date').value,
+    attendance:document.getElementById('nf-att').value,
+    soapS:document.getElementById('nf-soap-S')?.value||'',
+    soapO:document.getElementById('nf-soap-O')?.value||'',
+    soapA:document.getElementById('nf-soap-A')?.value||'',
+    soapP:document.getElementById('nf-soap-P')?.value||'',
+    activities:document.getElementById('nf-activities').value,
+    parentNote:document.getElementById('nf-parent').value,
+    therapist:document.getElementById('nf-therapist').value};
   if(editId){const idx=DB.notes.findIndex(n=>n.id===editId);DB.notes[idx]=data;}
   else DB.notes.push(data);
   closeModal('modal-note');toast('💾 儲存中…');await saveAll('notes')();toast('✅ 紀錄已儲存');render();
@@ -1408,14 +1495,13 @@ function setMilestone(prefix,i,val){
 }
 
 async function submitMilestone(ageGrp){
+  const AREA_MAP={gross:'mf-gross',fine:'mf-fine',cognitive:'mf-cog',social:'mf-social',selfcare:'mf-sc'};
   const toObj=prefix=>{
     const ms=MILESTONES[ageGrp];
-    const areaMap={gross:'mf-gross',fine:'mf-fine',cognitive:'mf-cog',social:'mf-social',selfcare:'mf-sc'};
+    const areaKey=Object.entries(AREA_MAP).find(([,v])=>v===prefix)?.[0];
+    const items=ms[areaKey]||[];
     const data={};
-    Object.entries(areaMap).forEach(([area,p])=>{
-      const items=ms[area]||[];
-      items.forEach((item,i)=>{data[item]=window._msData[p]?.[i]||'na';});
-    });
+    items.forEach((item,i)=>{data[item]=window._msData[prefix]?.[i]||'na';});
     return data;
   };
   const data={id:newId(),caseId:currentCase.id,date:document.getElementById('mf-date').value,ageGroup:ageGrp,
