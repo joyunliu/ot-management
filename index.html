@@ -1455,16 +1455,21 @@ async function deleteMilestone(id){if(!confirm('確定刪除？'))return;DB.mile
 // ══════════════════════════════════════════════════
 async function boot(){
   try{
-    await initSheets();await loadAll();
+    document.querySelector('#loading p').textContent='驗證 Google 連線中…';
+    const token = await getAccessToken();
+    document.querySelector('#loading p').textContent='讀取資料中…';
+    await initSheets();
+    await loadAll();
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.display='flex';
     render();
   }catch(e){
+    const msg = e?.message||String(e);
     document.getElementById('loading').innerHTML=`
     <div style="text-align:center;padding:30px">
       <div style="font-size:36px;margin-bottom:12px">❌</div>
       <div style="font-size:15px;font-weight:600;margin-bottom:8px">連線失敗</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:20px">請確認網路連線後重試</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;word-break:break-all;background:#f5f5f5;padding:10px;border-radius:8px;text-align:left">${msg}</div>
       <button onclick="location.reload()" style="background:var(--sage-d);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:14px;cursor:pointer">重新載入</button>
     </div>`;
     console.error(e);
