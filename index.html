@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OT管理">
+<meta name="theme-color" content="#2C3E50">
+<title>兒童職能治療管理 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// Web Crypto JWT - works natively on iOS Safari without external libraries
+async function signJWT(header, payload, pemKey) {
+  const b64u = s => btoa(s).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const b64uEncode = obj => b64u(JSON.stringify(obj));
+  
+  // Parse PEM key
+  const pemContents = pemKey
+    .replace('-----BEGIN PRIVATE KEY-----','')
+    .replace('-----END PRIVATE KEY-----','')
+    .replace(/\s/g,'');
+  const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8', binaryDer.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['sign']
+  );
+  
+  const signingInput = b64uEncode(header) + '.' + b64uEncode(payload);
+  const encoder = new TextEncoder();
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5', cryptoKey, encoder.encode(signingInput)
+  );
+  
+  const b64uSig = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  
+  return signingInput + '.' + b64uSig;
+}
+</script>
+<style>
+:root{
+  --bg:#F7F4EF;--card:#fff;--sage:#7BAF8E;--sage-d:#4E8A65;--sage-l:#D4EAD9;
+  --peach:#E8A87C;--peach-l:#FAE8D8;--navy:#2C3E50;--navy-l:#546E7A;
+  --lav:#9B8EC4;--lav-l:#EAE7F5;--gold:#D4A843;--gold-l:#FBF0D3;
+  --red:#E07070;--red-l:#FDECEC;--border:#E8E3D9;--muted:#8A9099;
+  --teal:#5BA4A4;--teal-l:#DFF0F0;
+  --fh:'Playfair Display',Georgia,serif;--fb:'DM Sans','Helvetica Neue',sans-serif;
+  --bot:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--fb);background:var(--bg);color:var(--navy);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+#app{flex:1;overflow:hidden;display:flex;flex-direction:column}
+#topbar{background:var(--navy);padding:12px 18px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#topbar h1{font-family:var(--fh);font-size:16px;color:#fff}
+.sync-btn{background:rgba(255,255,255,.12);border:none;border-radius:8px;padding:6px 12px;color:rgba(255,255,255,.8);font-size:12px;font-weight:600;cursor:pointer}
+#main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px calc(var(--bot) + env(safe-area-inset-bottom) + 20px)}
+#bnav{position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:1px solid rgba(255,255,255,.08);display:flex;height:var(--bot);padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;color:rgba(255,255,255,.4);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--fb)}
+.bn .ic{font-size:20px}.bn.active{color:var(--sage-l)}
+.card{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:18px 20px;margin-bottom:12px}
+.card-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.card-row:last-child{border-bottom:none}
+.ptitle{font-family:var(--fh);font-size:22px;color:var(--navy);margin-bottom:4px}
+.psub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.stitle{font-family:var(--fh);font-size:16px;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{border-radius:14px;padding:14px 15px}
+.stat-ic{font-size:19px;margin-bottom:5px}
+.stat-v{font-family:var(--fh);font-size:22px;font-weight:700;line-height:1}
+.stat-l{font-size:11px;color:var(--navy-l);margin-top:3px}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
+.prog{background:var(--border);border-radius:99px;height:7px;overflow:hidden}
+.prog-bar{height:100%;border-radius:99px;transition:width .5s}
+.av{border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;flex-shrink:0}
+.case-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.case-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:transform .15s}
+.case-card:active{transform:scale(.97)}
+.search{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);font-family:var(--fb);font-size:14px;outline:none;background:var(--card);margin-bottom:14px;-webkit-appearance:none;color:var(--navy)}
+.search:focus{border-color:var(--sage)}
+.tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:7px 13px;border-radius:9px;border:none;cursor:pointer;font-family:var(--fb);font-size:13px;font-weight:600;white-space:nowrap;background:transparent;color:var(--navy-l);transition:all .15s}
+.tab.active{background:var(--sage-d);color:#fff}
+.btn{border:none;border-radius:10px;padding:9px 16px;cursor:pointer;font-family:var(--fb);font-weight:600;font-size:13px;transition:opacity .15s;display:inline-flex;align-items:center;gap:5px}
+.btn:active{opacity:.75}
+.btn-sage{background:var(--sage-d);color:#fff}.btn-peach{background:var(--peach);color:#fff}
+.btn-lav{background:var(--lav);color:#fff}.btn-gold{background:var(--gold);color:#fff}
+.btn-border{background:var(--border);color:var(--navy)}.btn-red{background:var(--red);color:#fff}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-full{width:100%;justify-content:center;padding:12px;font-size:15px;margin-top:8px}
+.btn-sm{padding:5px 11px;font-size:12px}.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.fg{margin-bottom:13px}
+.fl{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.fi,.fsel,.fta{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border);font-family:var(--fb);font-size:14px;outline:none;background:#fff;-webkit-appearance:none;color:var(--navy)}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--sage)}
+.fta{resize:vertical;min-height:80px;line-height:1.6}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.overlay{position:fixed;inset:0;background:rgba(44,62,80,.45);display:flex;align-items:flex-end;justify-content:center;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none}
+.overlay.open{opacity:1;pointer-events:all}
+.sheet{background:var(--card);border-radius:22px 22px 0 0;width:100%;max-width:540px;max-height:94dvh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
+.overlay.open .sheet{transform:translateY(0)}
+.handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0}
+.mhead{padding:14px 20px 0;font-family:var(--fh);font-size:18px;color:var(--navy)}
+.mbody{padding:16px 20px 20px}
+.cal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cal-nav{background:var(--border);border:none;border-radius:8px;padding:7px 13px;cursor:pointer;font-size:15px}
+.cal-title{font-family:var(--fh);font-size:17px;color:var(--navy)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cdn{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:3px 0}
+.cell{min-height:44px;border-radius:9px;padding:4px 4px 2px;cursor:pointer;border:1px solid transparent;transition:all .12s}
+.cell:active{opacity:.7}.cell.today{background:var(--sage-l);border-color:var(--sage)}
+.cell.sel{background:var(--sage-d);border-color:var(--sage-d)}
+.cell.sel .cnum{color:#fff;font-weight:700}
+.cnum{font-size:11px;color:var(--navy)}.cell.today .cnum{color:var(--sage-d);font-weight:700}
+.cdots{display:flex;flex-wrap:wrap;gap:2px;margin-top:2px}
+.cdot{width:6px;height:6px;border-radius:50%}.cell.sel .cdot{background:rgba(255,255,255,.7)!important}
+.inc-bars{display:flex;align-items:flex-end;gap:4px;height:100px}
+.ib-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.ib{width:100%;border-radius:3px 3px 0 0;transition:height .4s;min-height:2px}
+.ib-l{font-size:8px;color:var(--muted)}.ib-v{font-size:8px;color:var(--muted);font-weight:600}
+#toast{position:fixed;bottom:calc(var(--bot) + env(safe-area-inset-bottom) + 12px);left:50%;transform:translateX(-50%) translateY(10px);background:var(--navy);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px}
+.sp{width:36px;height:36px;border:3px solid var(--sage-l);border-top-color:var(--sage-d);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:13px}
+.empty .ei{font-size:34px;margin-bottom:8px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ik{font-size:11px;color:var(--muted);margin-bottom:3px}
+.iv{font-size:14px;color:var(--navy);font-weight:500}
+.back-btn{background:none;border:none;color:var(--sage-d);font-size:14px;font-weight:600;cursor:pointer;padding:0 0 14px;display:flex;align-items:center;gap:4px;font-family:var(--fb)}
+/* Quick chips */
+.chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{background:var(--sage-l);color:var(--sage-d);border:none;border-radius:20px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:all .15s}
+.chip:active{background:var(--sage-d);color:#fff}
+.chip.peach{background:var(--peach-l);color:#c07040}
+.chip.lav{background:var(--lav-l);color:var(--lav)}
+.chip.gold{background:var(--gold-l);color:#a07020}
+.chip.red{background:var(--red-l);color:var(--red)}
+/* SOAP tabs */
+.soap-tabs{display:flex;gap:4px;margin-bottom:10px}
+.soap-tab{flex:1;text-align:center;padding:7px 4px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);font-family:var(--fb)}
+.soap-tab.active{border-color:var(--sage-d);background:var(--sage-d);color:#fff}
+/* Assessment */
+.assess-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:10px}
+.assess-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.score-box{background:var(--bg);border-radius:10px;padding:8px 10px;text-align:center}
+.score-val{font-family:var(--fh);font-size:17px;font-weight:700;color:var(--navy)}
+.score-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+/* Milestone */
+.milestone-section{margin-bottom:14px}
+.milestone-title{font-size:12px;font-weight:700;color:var(--navy-l);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.milestone-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.milestone-item:last-child{border-bottom:none}
+.milestone-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;transition:all .15s}
+.milestone-check.yes{background:var(--sage-d);border-color:var(--sage-d);color:#fff}
+.milestone-check.no{background:var(--red-l);border-color:var(--red);color:var(--red)}
+.milestone-check.na{background:var(--border);color:var(--muted)}
+/* Fee settings */
+.fee-row{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px}
+.fee-label{font-size:13px;color:var(--navy);font-weight:600}
+</style>
+</head>
+<body>
+<div id="loading"><div class="sp"></div><p style="font-size:14px;color:var(--muted)">載入中…</p></div>
+<div id="toast"></div>
+<div id="app" style="display:none">
+  <div id="topbar">
+    <h1>🌿 OT 個案管理</h1>
+    <button class="sync-btn" onclick="syncAll()" id="syncBtn">⟳ 同步</button>
+  </div>
+  <div id="main"></div>
+  <nav id="bnav">
+    <button class="bn active" onclick="nav('dashboard')" id="bn-dashboard"><span class="ic">🏠</span>總覽</button>
+    <button class="bn" onclick="nav('cases')" id="bn-cases"><span class="ic">👧</span>個案</button>
+    <button class="bn" onclick="nav('calendar')" id="bn-calendar"><span class="ic">📅</span>行事曆</button>
+    <button class="bn" onclick="nav('income')" id="bn-income"><span class="ic">💰</span>收入</button>
+    <button class="bn" onclick="nav('settings')" id="bn-settings"><span class="ic">⚙️</span>設定</button>
+  </nav>
+</div>
+
+<!-- Modals -->
+<div class="overlay" id="modal-case"><div class="sheet"><div class="handle"></div><div class="mhead" id="mc-title">新增個案</div><div class="mbody" id="mc-body"></div></div></div>
+<div class="overlay" id="modal-appt"><div class="sheet"><div class="handle"></div><div class="mhead" id="ma-title">新增預約</div><div class="mbody" id="ma-body"></div></div></div>
+<div class="overlay" id="modal-goal"><div class="sheet"><div class="handle"></div><div class="mhead" id="mg-title">治療目標</div><div class="mbody" id="mg-body"></div></div></div>
+<div class="overlay" id="modal-note"><div class="sheet"><div class="handle"></div><div class="mhead" id="mn-title">治療紀錄</div><div class="mbody" id="mn-body"></div></div></div>
+<div class="overlay" id="modal-assess"><div class="sheet"><div class="handle"></div><div class="mhead" id="mas-title">評估記錄</div><div class="mbody" id="mas-body"></div></div></div>
+<div class="overlay" id="modal-milestone"><div class="sheet"><div class="handle"></div><div class="mhead" id="mm-title">發展里程碑</div><div class="mbody" id="mm-body"></div></div></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════
+const SHEET_ID='10PwkygvatxXnJPMTGHGi0OxQqhhZuO1PiV0eK296OLY';
+const SA_EMAIL='ot-manager@ot-management-494211.iam.gserviceaccount.com';
+const SA_KEY=`-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCumfY50kwS+6ql
+Uu/td3HJwAItEi5Cr7LozIZvIEogrbqC48fzkbVgozAJ6aQw8fhWHUxKUA5vLm7o
+w7lSLiuq7qHaGVK7THb4hlq6EyU3Ve/vuASiYCabNJZzK9GqZKZKsHfHBU3QaU0O
+uBw6JJsVfU85JrZK5UUdFkUuMnuWzGww8N2OyKBIgIQNioTXVkOvhOYM2ww/mgYT
+L1qdIeObgU20vWN2RLiDrvSqdxKcynPO8uPqN8qdvRUGP5mKUrAdQUdlRk42pIlm
+5qBFBYh3D6l63pc5feSjyHmB0h0cuuqOqhfO5vBSvh2VakMsxA6O6kx9SjfT+0YF
++ct3/eIVAgMBAAECggEABTCfF+bNnpaiL6hbtXzcFV5lyI+wCTweQg4kSws6naaN
+8vddplQoM0w4FxW9rO759Ggjo3JzDDB+spOj/4XPHZVazitIoR5VS5VfMh7ad7IQ
+MzMbcvUozwSJs7iZ32n+/Gmq7pZHuU0/MZPc7CIe680nmYzYrp8kH9V3FUS1Lw06
+pShLo6qlYK5JTrJ25xN9I5hZGtS+IRzWTkimp8OygY3wvkrasclFjo7beK/il97o
+OYDZWVu1FVsX6SUuCSV/GKp+Jf+db2TnPKIC7/T6WVcQrr7/cvxfiqnDaEEwxrsA
+G2/X6KPgCv10pRsqCofJr3QVTrHDNjkReiIEt5iVQQKBgQDX1bnK7jQtX/+36u2t
+b404tjsPGksLg5Hl7phg+/8U2wEKw8zpdtlfJuBIV8/pnewGPR6vc+NN2Wxp6TI+
+HcOtIvXFFsz4O05u4VbFuCj1vPI5SuC/eIYrv0OOTNU+t1abhVsSTxFQu4+9H0Pm
+NBynUYpJgXNKdvz2TaRim/QL1QKBgQDPF+SrngM+iwHVdg6tqcTmvsWPESz0hoZL
+D1AhrPgq9u0mpm2hQI8RcvzwoDFPpmvFNuhMOIgxbq69EpfItDvftGd1cTsnNeVM
+/9yx8OlHsbIzrTl/oUtI0YeBRAI05W5YAcqwTmEOKOs7qgmJuZCo/K8v1N9y1CRc
+t3k05ZDdQQKBgFLLVb4WqkVNshanNA134UCEBxvABlGgYvNFF4b8o9koObobahuU
+z8XEb/zQUp1XSxcJkx/S4LsYUJJANlnFqS5dXtH/8Ri4B1pZbqPiBTRfCrwXkSdh
+4HYfpJaNuq+YPMzj1w+q7QV/LaBqwe0oyGUWzmlsEwHZqygAmLKLCI8RAoGAFJMM
+Hdy598m5qeprtOcr77y+ReNv8u82gliIHoBfu20CzJc2RxHx5MrmxEU2APLIvDQj
+SgdHyJl1dMVXHRKC7EuxB6LzPIcHO+ojk+4aTwwhZy7rinmM0DQ44SfPjE/K8aVj
+7LYswEpibHANOIieDZvlD7x3YqIe5rM3sICqLsECgYAEVYxX2BUTQkGHQ08HqtWD
+bdavsI7i4RVlN+SsxSTkR0S71DfzEdYlDPBqCERb+XRSmguBCBPsA8cDBb3p8Es8
+nPLZXtPPLP3yG2YOEuHHMlYTgWWFg99J3g22Jh8SpjXrZSWq47Qf7ctnLl+KCoa2
+/UZy5Wi9xg8aaHupJ39xWQ==
+-----END PRIVATE KEY-----`;
+
+// ══════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════
+const COLORS=['#7BAF8E','#E8A87C','#9B8EC4','#D4A843','#5B78C9','#E07070','#5BA4A4','#C47A8E'];
+const MONTHS=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const DAYS=['日','一','二','三','四','五','六'];
+
+// Quick-input chips by category
+const CHIPS = {
+  attendance: [{l:'✅ 準時到課',v:'準時到課'},{l:'⏰ 遲到',v:'遲到約'},{l:'❌ 缺課',v:'缺課（未通知）'},{l:'📞 請假',v:'家長來電請假'},{l:'🔄 補課',v:'補課'}],
+  cooperation: [{l:'配合度佳',v:'配合度佳，全程參與'},{l:'需口頭提示',v:'需口頭提示方能配合'},{l:'需肢體協助',v:'需肢體協助引導'},{l:'抗拒活動',v:'對活動表現抗拒'},{l:'情緒穩定',v:'情緒穩定'},{l:'情緒波動',v:'情緒有波動，需安撫'}],
+  performance: [{l:'達成目標',v:'達成本次治療目標'},{l:'進步明顯',v:'表現較上次有明顯進步'},{l:'維持水準',v:'表現維持上次水準'},{l:'仍需練習',v:'仍需持續練習'},{l:'首次嘗試',v:'首次嘗試，反應良好'}],
+  sensory: [{l:'觸覺防禦',v:'仍有觸覺防禦反應'},{l:'前庭尋求',v:'前庭感覺尋求行為明顯'},{l:'本體感改善',v:'本體感覺輸入後穩定度提升'},{l:'感統耐受↑',v:'感覺耐受度較前次提升'}],
+  motor: [{l:'握筆進步',v:'三指握筆姿勢較穩定'},{l:'剪刀技巧↑',v:'剪刀操作技巧進步'},{l:'平衡改善',v:'單腳站立時間延長'},{l:'協調↑',v:'雙側協調動作改善'},{l:'肌張力低',v:'核心肌張力偏低，需加強'}],
+  homework: [{l:'給予回家練習',v:'回家作業：'},{l:'親子活動建議',v:'建議親子活動：'},{l:'下次目標',v:'下次治療目標：'},{l:'家長衛教',v:'已向家長說明：'}]
+};
+
+// Assessment tools config
+const ASSESS_TOOLS = {
+  'PDMS-2': { name:'PDMS-2 粗大/精細動作發展量表', ageRange:'0-72個月', scores:['粗大動作(GMQ)','精細動作(FMQ)','總動作(TMQ)'], hasPercentile:true },
+  'BOT-2':  { name:'BOT-2 動作協調測驗', ageRange:'4-21歲', scores:['總分','標準分數'], hasPercentile:true },
+  'SP':     { name:'SP 感覺剖析量表', ageRange:'3-10歲', scores:['感覺尋求','情緒反應','低登錄','感覺敏感','感覺迴避'], hasPercentile:false },
+  'SPM':    { name:'SPM 感覺處理測量', ageRange:'5-12歲', scores:['社交參與','視覺','聽覺','觸覺','身體意識','平衡','計畫協調'], hasPercentile:false },
+  'DAYC-2': { name:'DAYC-2 幼兒發展評估量表', ageRange:'0-72個月', scores:['認知','溝通','社會情緒','身體發展','適應行為'], hasPercentile:true },
+  'Sensory Profile': { name:'Sensory Profile 感覺特徵量表', ageRange:'3-14歲', scores:['低登錄','感覺尋求','敏感性','迴避'], hasPercentile:false },
+};
+
+// Developmental milestones by age group
+const MILESTONES = {
+  '0-12m': {
+    title:'0-12個月',
+    gross:['俯臥時能抬頭','能翻身（前後）','能獨坐','能爬行','能扶站'],
+    fine:['能抓握物品','能換手拿物','拇食指對捏','能拍打物品'],
+    cognitive:['對聲音有反應','認得主要照顧者','物體恆存概念','模仿簡單動作'],
+    social:['社會性微笑','互動性發聲','分離焦慮出現'],
+    selfcare:['能自行進食手指食物','配合穿衣']
+  },
+  '1-2y': {
+    title:'1-2歲',
+    gross:['能獨走','能蹲下撿東西','能上下樓梯（扶）','能踢球'],
+    fine:['能疊積木2-4塊','能塗鴉','能翻書頁','能拿湯匙'],
+    cognitive:['能指認身體部位','能完成形狀配對','假扮遊戲出現','理解簡單指令'],
+    social:['平行遊戲','能表達需求','情緒自我調節萌芽'],
+    selfcare:['能用杯子喝水','能脫鞋子','如廁訓練開始']
+  },
+  '2-3y': {
+    title:'2-3歲',
+    gross:['能跑步','能跳躍（雙腳）','能騎三輪車','能單腳站2秒'],
+    fine:['能疊積木6塊以上','能模仿畫圓','能穿珠子','能使用剪刀'],
+    cognitive:['能說出顏色名稱','能數1-10','理解大小概念','能完成3步驟指令'],
+    social:['平行轉聯合遊戲','能等待輪流','表達多種情緒'],
+    selfcare:['能自行用湯匙','能自己穿脫鞋子','如廁訓練完成']
+  },
+  '3-4y': {
+    title:'3-4歲',
+    gross:['能單腳跳','能接球','能走平衡木','能爬梯子'],
+    fine:['三指握筆','能模仿畫十字','能扣大鈕扣','能使用剪刀剪直線'],
+    cognitive:['能分類物品','理解因果關係','能說完整句子','認識基本顏色形狀'],
+    social:['合作遊戲','能遵守簡單規則','能與同儕互動'],
+    selfcare:['能自行穿衣（簡單）','能自己刷牙','能獨立如廁']
+  },
+  '4-6y': {
+    title:'4-6歲',
+    gross:['單腳站5秒以上','能跳繩','能騎腳踏車（輔助輪）','能接/拍球'],
+    fine:['能畫人形','能寫自己名字','能剪曲線','能使用筷子'],
+    cognitive:['能數到20','理解時間概念','能排序','開始認字'],
+    social:['合作遊戲','了解遊戲規則','能控制情緒','能交朋友'],
+    selfcare:['能自行穿衣','能整理書包','能獨立吃飯']
+  },
+  '6-12y': {
+    title:'6-12歲',
+    gross:['協調運動技巧成熟','能參與球類運動','平衡感良好','能游泳/騎車'],
+    fine:['書寫速度與品質','剪貼技巧熟練','能使用各種工具','手眼協調良好'],
+    cognitive:['邏輯推理發展','學科概念建立','注意力維持20分鐘以上','工作記憶發展'],
+    social:['同儕關係建立','合作解決問題','情緒調節','自我概念發展'],
+    selfcare:['完全獨立自理','整理個人物品','時間管理萌芽']
+  }
+};
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let DB = { cases:[], appts:[], goals:[], notes:[], assessments:[], milestones:[], settings:{} };
+let currentNav='dashboard', currentCase=null, currentCaseTab='info';
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=null;
+let incomeYear=new Date().getFullYear(), incomeMonth=new Date().getMonth();
+let accessToken=null, tokenExpiry=0;
+let soapActiveTab='S';
+
+// ══════════════════════════════════════════════════
+// JWT AUTH
+// ══════════════════════════════════════════════════
+async function getAccessToken(){
+  if(accessToken&&Date.now()<tokenExpiry)return accessToken;
+  const now=Math.floor(Date.now()/1000);
+  const header={alg:'RS256',typ:'JWT'};
+  const payload={iss:SA_EMAIL,scope:'https://www.googleapis.com/auth/spreadsheets',aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now};
+  const jwt=await signJWT(header,payload,SA_KEY);
+  const res=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`});
+  const d=await res.json();
+  if(!d.access_token)throw new Error('Token error: '+JSON.stringify(d));
+  accessToken=d.access_token;tokenExpiry=Date.now()+3500*1000;return accessToken;
+}
+
+// ══════════════════════════════════════════════════
+// SHEETS API
+// ══════════════════════════════════════════════════
+async function sheetGet(range){const t=await getAccessToken();const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,{headers:{Authorization:`Bearer ${t}`}});return(await r.json()).values||[];}
+async function sheetSet(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
+async function sheetAppend(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
+async function sheetClear(range){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,{method:'POST',headers:{Authorization:`Bearer ${t}`}});}
+
+async function initSheets(){
+  const sheets=[
+    {name:'個案',h:['id','name','dob','diagnosis','guardian','phone','sessions','status','color','note']},
+    {name:'預約',h:['id','caseId','date','time','duration','fee','note','status','type','groupSize','timeSlot']},
+    {name:'目標',h:['id','caseId','area','goal','target','progress','status']},
+    {name:'紀錄',h:['id','caseId','date','attendance','soapS','soapO','soapA','soapP','activities','parentNote','therapist']},
+    {name:'評估',h:['id','caseId','tool','date','scores','percentiles','notes','recommendations']},
+    {name:'里程碑',h:['id','caseId','date','ageGroup','gross','fine','cognitive','social','selfcare','notes']},
+    {name:'設定',h:['key','value']},
+  ];
+  for(const s of sheets){const rows=await sheetGet(`${s.name}!A1:Z1`);if(!rows.length)await sheetSet(`${s.name}!A1`,[s.h]);}
+}
+
+// ══════════════════════════════════════════════════
+// LOAD / SAVE
+// ══════════════════════════════════════════════════
+async function loadAll(){
+  const [cases,appts,goals,notes,assessments,milestones,settings]=await Promise.all([
+    sheetGet('個案!A2:J999'),sheetGet('預約!A2:K999'),sheetGet('目標!A2:G999'),
+    sheetGet('紀錄!A2:K999'),sheetGet('評估!A2:H999'),sheetGet('里程碑!A2:J999'),sheetGet('設定!A2:B99')
+  ]);
+  DB.cases=cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',diagnosis:r[3]||'',guardian:r[4]||'',phone:r[5]||'',sessions:+r[6]||0,status:r[7]||'active',color:r[8]||COLORS[0],note:r[9]||''}));
+  DB.appts=appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'}));
+  DB.goals=goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'}));
+  DB.notes=notes.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',attendance:r[3]||'present',soapS:r[4]||'',soapO:r[5]||'',soapA:r[6]||'',soapP:r[7]||'',activities:r[8]||'',parentNote:r[9]||'',therapist:r[10]||''}));
+  DB.assessments=assessments.map(r=>({id:r[0],caseId:r[1],tool:r[2]||'',date:r[3]||'',scores:r[4]||'',percentiles:r[5]||'',notes:r[6]||'',recommendations:r[7]||''}));
+  DB.milestones=milestones.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',ageGroup:r[3]||'',gross:r[4]||'',fine:r[5]||'',cognitive:r[6]||'',social:r[7]||'',selfcare:r[8]||'',notes:r[9]||''}));
+  DB.settings={};settings.forEach(r=>{if(r[0])DB.settings[r[0]]=r[1]||'';});
+  // default fee settings
+  if(!DB.settings.fee_individual_weekday) DB.settings.fee_individual_weekday='1200';
+  if(!DB.settings.fee_individual_weekend) DB.settings.fee_individual_weekend='1500';
+  if(!DB.settings.fee_group2_weekday)     DB.settings.fee_group2_weekday='900';
+  if(!DB.settings.fee_group2_weekend)     DB.settings.fee_group2_weekend='1100';
+  if(!DB.settings.fee_group3_weekday)     DB.settings.fee_group3_weekday='800';
+  if(!DB.settings.fee_group3_weekend)     DB.settings.fee_group3_weekend='1000';
+}
+
+const saveAll = (key) => ({
+  cases:  async()=>{await sheetClear('個案!A2:J999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.diagnosis,c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));},
+  appts:  async()=>{await sheetClear('預約!A2:K999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot]));},
+  goals:  async()=>{await sheetClear('目標!A2:G999');if(DB.goals.length)await sheetAppend('目標!A2',DB.goals.map(g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status]));},
+  notes:  async()=>{await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));},
+  assess: async()=>{await sheetClear('評估!A2:H999');if(DB.assessments.length)await sheetAppend('評估!A2',DB.assessments.map(a=>[a.id,a.caseId,a.tool,a.date,a.scores,a.percentiles,a.notes,a.recommendations]));},
+  milestones:async()=>{await sheetClear('里程碑!A2:J999');if(DB.milestones.length)await sheetAppend('里程碑!A2',DB.milestones.map(m=>[m.id,m.caseId,m.date,m.ageGroup,m.gross,m.fine,m.cognitive,m.social,m.selfcare,m.notes]));},
+  settings:async()=>{await sheetClear('設定!A2:B99');const rows=Object.entries(DB.settings);if(rows.length)await sheetAppend('設定!A2',rows);}
+})[key];
+
+function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function toast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function age(dob){if(!dob)return'–';const d=new Date(dob),n=new Date();let y=n.getFullYear()-d.getFullYear();if(n.getMonth()<d.getMonth()||(n.getMonth()===d.getMonth()&&n.getDate()<d.getDate()))y--;return y;}
+function ageMonths(dob){if(!dob)return 0;const d=new Date(dob),n=new Date();return(n.getFullYear()-d.getFullYear())*12+(n.getMonth()-d.getMonth());}
+function caseColor(id){return DB.cases.find(x=>x.id===id)?.color||COLORS[0];}
+function caseName(id){return DB.cases.find(x=>x.id===id)?.name||'–';}
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+function firstDay(y,m){return new Date(y,m,1).getDay();}
+
+async function syncAll(){
+  const btn=document.getElementById('syncBtn');
+  btn.style.animation='spin .8s linear infinite';
+  try{await loadAll();render();toast('✅ 已同步最新資料');}
+  catch(e){toast('❌ 同步失敗，請檢查網路');}
+  finally{btn.style.animation='';btn.textContent='⟳ 同步';}
+}
+
+function getAgeGroup(dob){
+  const m=ageMonths(dob);
+  if(m<12)return'0-12m';if(m<24)return'1-2y';if(m<36)return'2-3y';
+  if(m<48)return'3-4y';if(m<72)return'4-6y';return'6-12y';
+}
+
+function calcFee(type,groupSize,timeSlot){
+  const s=DB.settings;
+  if(type==='individual'){return timeSlot==='weekend'?+s.fee_individual_weekend:+s.fee_individual_weekday;}
+  if(groupSize<=2){return timeSlot==='weekend'?+s.fee_group2_weekend:+s.fee_group2_weekday;}
+  return timeSlot==='weekend'?+s.fee_group3_weekend:+s.fee_group3_weekday;
+}
+
+// ══════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════
+function nav(page){
+  currentNav=page;currentCase=null;
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('bn-'+page)?.classList.add('active');
+  render();
+}
+function render(){
+  const m=document.getElementById('main');
+  if(currentCase&&currentNav==='cases'){m.innerHTML=renderCaseDetail();return;}
+  switch(currentNav){
+    case'dashboard':m.innerHTML=renderDashboard();break;
+    case'cases':m.innerHTML=renderCases();break;
+    case'calendar':m.innerHTML=renderCalendar();break;
+    case'income':m.innerHTML=renderIncome();break;
+    case'settings':m.innerHTML=renderSettings();break;
+  }
+}
+
+// ══════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════
+function renderDashboard(){
+  const now=new Date(),mn=now.getMonth(),yr=now.getFullYear();
+  const mA=DB.appts.filter(a=>{const d=new Date(a.date);return d.getMonth()===mn&&d.getFullYear()===yr;});
+  const done=mA.filter(a=>a.status==='done');
+  const dInc=done.reduce((s,a)=>s+a.fee,0);
+  const uInc=mA.filter(a=>a.status==='upcoming').reduce((s,a)=>s+a.fee,0);
+  const active=DB.cases.filter(c=>c.status==='active');
+  const aG=DB.goals.filter(g=>g.status==='active');
+  const avgP=aG.length?Math.round(aG.reduce((s,g)=>s+g.progress,0)/aG.length):0;
+  const upcoming=DB.appts.filter(a=>a.status==='upcoming').sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  return`
+  <div class="ptitle">今日總覽 ✨</div>
+  <div class="psub">${now.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}</div>
+  <div class="stat-grid">
+    <div class="stat" style="background:var(--sage-l)"><div class="stat-ic">👧</div><div class="stat-v" style="color:var(--sage-d)">${active.length}<span style="font-size:13px;font-weight:400;margin-left:2px">位</span></div><div class="stat-l">活躍個案</div></div>
+    <div class="stat" style="background:#EBF0FC"><div class="stat-ic">📅</div><div class="stat-v" style="color:#5B78C9">${mA.length}<span style="font-size:13px;font-weight:400;margin-left:2px">次</span></div><div class="stat-l">本月預約</div></div>
+    <div class="stat" style="background:var(--gold-l)"><div class="stat-ic">💰</div><div class="stat-v" style="color:var(--gold);font-size:17px">$${dInc.toLocaleString()}</div><div class="stat-l">本月已收</div></div>
+    <div class="stat" style="background:var(--lav-l)"><div class="stat-ic">🎯</div><div class="stat-v" style="color:var(--lav)">${avgP}<span style="font-size:13px;font-weight:400;margin-left:2px">%</span></div><div class="stat-l">目標平均進度</div></div>
+  </div>
+  <div class="card">
+    <div class="stitle">📌 近期預約</div>
+    ${upcoming.length===0?'<div class="empty"><div class="ei">📭</div>暫無預約</div>':upcoming.map(a=>`
+    <div class="card-row">
+      <div class="av" style="width:36px;height:36px;background:${caseColor(a.caseId)};font-size:14px">${caseName(a.caseId)[0]||'?'}</div>
+      <div style="flex:1"><div style="font-weight:600;font-size:13px">${caseName(a.caseId)}</div><div style="font-size:11px;color:var(--muted)">${a.type==='group'?`👥 團體${a.groupSize}人`:'👤 個別'} · ${a.note||'–'}</div></div>
+      <div style="text-align:right"><div style="font-size:12px;font-weight:600;color:var(--navy-l)">${a.date.slice(5)}</div><div style="font-size:11px;color:var(--muted)">${a.time}</div></div>
+    </div>`).join('')}
+  </div>
+  <div class="card">
+    <div class="stitle">💵 本月收入</div>
+    <div style="font-family:var(--fh);font-size:26px;color:var(--sage-d);margin-bottom:8px">$${dInc.toLocaleString()}</div>
+    <div style="background:var(--gold-l);border-radius:10px;padding:10px 14px;margin-bottom:8px">
+      <div style="font-size:11px;color:var(--muted)">預計收入（未完成）</div>
+      <div style="font-family:var(--fh);font-size:17px;color:var(--gold)">$${uInc.toLocaleString()}</div>
+    </div>
+    <div style="font-size:11px;color:var(--muted)">本月 ${mA.length} 次 · 已完成 ${done.length} 次</div>
+  </div>
+  ${aG.length?`<div class="card"><div class="stitle">🎯 目標進度</div>${aG.slice(0,5).map(g=>`
+  <div style="margin-bottom:11px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="font-size:12px">${caseName(g.caseId)} · <span style="color:var(--muted)">${g.area}</span></span>
+      <span style="font-size:12px;font-weight:700;color:${g.progress>=80?'var(--sage-d)':'var(--navy-l)'}">${g.progress}%</span>
+    </div>
+    <div class="prog"><div class="prog-bar" style="width:${g.progress}%;background:${caseColor(g.caseId)}"></div></div>
+  </div>`).join('')}</div>`:''}`;
+}
+
+// ══════════════════════════════════════════════════
+// CASES LIST
+// ══════════════════════════════════════════════════
+function renderCases(){
+  return`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="ptitle" style="margin-bottom:0">個案管理</div>
+    <button class="btn btn-sage btn-sm" onclick="openCaseModal()">+ 新增</button>
+  </div>
+  <input class="search" id="caseSearch" placeholder="搜尋姓名或診斷…" oninput="filterCases(this.value)">
+  <div class="case-grid" id="caseGrid">${renderCaseCards(DB.cases)}</div>`;
+}
+function renderCaseCards(list){
+  if(!list.length)return`<div class="empty" style="grid-column:1/-1"><div class="ei">👤</div>尚無個案</div>`;
+  return list.map(c=>`
+  <div class="case-card" onclick="selectCase('${c.id}')">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
+      <div class="av" style="width:38px;height:38px;background:${c.color};font-size:16px">${c.name[0]||'?'}</div>
+      <div><div style="font-weight:700;font-size:14px">${c.name}</div>
+      <span class="tag" style="background:${c.status==='active'?'var(--sage-l)':'var(--border)'};color:${c.status==='active'?'var(--sage-d)':'var(--muted)'}">${c.status==='active'?'治療中':'暫停'}</span></div>
+    </div>
+    <div style="font-size:11px;color:var(--navy-l);margin-bottom:2px">🔍 ${c.diagnosis||'–'}</div>
+    <div style="font-size:11px;color:var(--muted)">${age(c.dob)}歲 · ${c.sessions}次</div>
+  </div>`).join('');
+}
+function filterCases(q){const g=document.getElementById('caseGrid');if(g)g.innerHTML=renderCaseCards(DB.cases.filter(c=>c.name.includes(q)||c.diagnosis.includes(q)));}
+function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='info';render();}
+
+// ══════════════════════════════════════════════════
+// CASE DETAIL
+// ══════════════════════════════════════════════════
+function renderCaseDetail(){
+  const c=currentCase;
+  const cA=DB.appts.filter(a=>a.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const cG=DB.goals.filter(g=>g.caseId===c.id);
+  const cN=DB.notes.filter(n=>n.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const cAs=DB.assessments.filter(a=>a.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const cM=DB.milestones.filter(m=>m.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const totalInc=cA.filter(a=>a.status==='done').reduce((s,a)=>s+a.fee,0);
+
+  const TABS=[['info','資料'],['goals','目標'],['notes','紀錄'],['assess','評估'],['milestone','里程碑'],['appts','預約']];
+  let body='';
+
+  if(currentCaseTab==='info'){
+    body=`<div class="card info-grid">
+      ${[['姓名',c.name],['診斷',c.diagnosis||'–'],['生日',c.dob||'–'],['年齡',`${age(c.dob)} 歲`],['月齡',`${ageMonths(c.dob)} 個月`],['監護人',c.guardian||'–'],['電話',c.phone||'–'],['累計次數',`${c.sessions} 次`],['狀態',c.status==='active'?'治療中':'暫停'],['備註',c.note||'–']].map(([k,v])=>`<div><div class="ik">${k}</div><div class="iv">${v}</div></div>`).join('')}
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-border" onclick="openCaseModal('${c.id}')">✏️ 編輯</button>
+      <button class="btn btn-red" onclick="deleteCase('${c.id}')">🗑 刪除個案</button>
+    </div>`;
+  } else if(currentCaseTab==='goals'){
+    body=`<div class="btn-row"><button class="btn btn-lav btn-sm" onclick="openGoalModal()">+ 新增目標</button></div>
+    ${cG.length===0?'<div class="empty"><div class="ei">🎯</div>尚無治療目標</div>':cG.map(g=>`
+    <div class="card" style="padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="flex:1"><span class="tag" style="background:var(--lav-l);color:var(--lav)">${g.area}</span>
+        <div style="font-weight:600;font-size:13px;margin-top:5px">${g.goal}</div></div>
+        <div style="display:flex;gap:5px;margin-left:8px;flex-shrink:0">
+          <button class="btn btn-border btn-sm" onclick="editGoalProgress('${g.id}')">更新</button>
+          <button class="btn btn-red btn-sm" onclick="deleteGoal('${g.id}')">🗑</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="prog" style="flex:1"><div class="prog-bar" style="width:${g.progress}%;background:${c.color}"></div></div>
+        <span style="font-size:12px;font-weight:700">${g.progress}%</span>
+        <span class="tag" style="background:${g.status==='done'?'var(--sage-l)':'var(--peach-l)'};color:${g.status==='done'?'var(--sage-d)':'var(--peach)'}">${g.status==='done'?'已達成':'進行中'}</span>
+      </div>
+      ${g.target?`<div style="font-size:11px;color:var(--muted);margin-top:6px">目標日期：${g.target}</div>`:''}
+    </div>`).join('')}`;
+  } else if(currentCaseTab==='notes'){
+    body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button></div>
+    ${cN.length===0?'<div class="empty"><div class="ei">📝</div>尚無治療紀錄</div>':cN.map(n=>{
+      const att={present:'✅ 出席',absent:'❌ 缺課',late:'⏰ 遲到',makeup:'🔄 補課'}[n.attendance]||'–';
+      return`<div class="card" style="border-left:4px solid ${c.color};padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="tag" style="background:var(--border);color:var(--navy-l)">${n.therapist||'–'}</span>
+            <span style="font-size:11px;color:var(--muted)">${att}</span>
+          </div>
+          <div style="display:flex;gap:5px;align-items:center">
+            <span style="font-size:11px;color:var(--muted)">${n.date}</span>
+            <button class="btn btn-border btn-sm" onclick="editNote('${n.id}')">✏️</button>
+            <button class="btn btn-red btn-sm" onclick="deleteNote('${n.id}')">🗑</button>
+          </div>
+        </div>
+        ${n.soapS?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--sage-d);background:var(--sage-l);padding:2px 7px;border-radius:10px">S</span> <span style="font-size:13px">${n.soapS}</span></div>`:''}
+        ${n.soapO?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:#5B78C9;background:#EBF0FC;padding:2px 7px;border-radius:10px">O</span> <span style="font-size:13px">${n.soapO}</span></div>`:''}
+        ${n.soapA?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--peach);background:var(--peach-l);padding:2px 7px;border-radius:10px">A</span> <span style="font-size:13px">${n.soapA}</span></div>`:''}
+        ${n.soapP?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--lav);background:var(--lav-l);padding:2px 7px;border-radius:10px">P</span> <span style="font-size:13px">${n.soapP}</span></div>`:''}
+        ${n.activities?`<div style="font-size:12px;color:var(--navy-l);margin-top:4px">🎮 ${n.activities}</div>`:''}
+        ${n.parentNote?`<div style="font-size:12px;color:var(--gold);margin-top:4px">💬 ${n.parentNote}</div>`:''}
+      </div>`;}).join('')}`;
+  } else if(currentCaseTab==='assess'){
+    body=`<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="openAssessModal()">+ 新增評估</button></div>
+    ${cAs.length===0?'<div class="empty"><div class="ei">📊</div>尚無評估紀錄</div>':cAs.map(a=>{
+      let scores={},pcts={};
+      try{scores=JSON.parse(a.scores||'{}');}catch(e){}
+      try{pcts=JSON.parse(a.percentiles||'{}');}catch(e){}
+      const tool=ASSESS_TOOLS[a.tool]||{name:a.tool,scores:[]};
+      return`<div class="assess-card">
+        <div class="assess-header">
+          <div><div style="font-weight:700;font-size:14px;color:var(--navy)">${tool.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${a.date}</div></div>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-border btn-sm" onclick="editAssess('${a.id}')">✏️</button>
+            <button class="btn btn-red btn-sm" onclick="deleteAssess('${a.id}')">🗑</button>
+          </div>
+        </div>
+        ${Object.keys(scores).length?`<div class="score-grid">${Object.entries(scores).map(([k,v])=>`
+          <div class="score-box"><div class="score-val">${v}</div><div class="score-lbl">${k}</div>${pcts[k]?`<div style="font-size:9px;color:var(--sage-d);font-weight:600">P${pcts[k]}</div>`:''}</div>`).join('')}</div>`:''}
+        ${a.notes?`<div style="font-size:12px;color:var(--navy-l);margin-bottom:6px">${a.notes}</div>`:''}
+        ${a.recommendations?`<div style="background:var(--sage-l);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--sage-d)">💡 ${a.recommendations}</div>`:''}
+      </div>`;}).join('')}`;
+  } else if(currentCaseTab==='milestone'){
+    body=`<div class="btn-row"><button class="btn btn-gold btn-sm" onclick="openMilestoneModal()">+ 新增里程碑紀錄</button></div>
+    ${cM.length===0?`<div class="empty"><div class="ei">🌱</div>尚無里程碑紀錄<br><span style="font-size:11px">目前年齡：${age(c.dob)}歲（${ageMonths(c.dob)}個月）</span></div>`:cM.map(m=>{
+      const ag=MILESTONES[m.ageGroup]||{};
+      const parse=s=>{try{return JSON.parse(s||'{}');}catch(e){return{};}};
+      const g=parse(m.gross),f=parse(m.fine),cog=parse(m.cognitive),soc=parse(m.social),sc=parse(m.selfcare);
+      const countStatus=obj=>{let y=0,n=0,total=0;Object.values(obj).forEach(v=>{total++;if(v==='yes')y++;else if(v==='no')n++;});return{y,n,total};};
+      const gs=countStatus(g),fs=countStatus(f);
+      return`<div class="assess-card">
+        <div class="assess-header">
+          <div><div style="font-weight:700;font-size:14px">${ag.title||m.ageGroup} 里程碑</div>
+          <div style="font-size:11px;color:var(--muted)">${m.date}</div></div>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-border btn-sm" onclick="viewMilestone('${m.id}')">查看</button>
+            <button class="btn btn-red btn-sm" onclick="deleteMilestone('${m.id}')">🗑</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="tag" style="background:var(--sage-l);color:var(--sage-d)">粗動 ${gs.y}/${gs.total}</span>
+          <span class="tag" style="background:var(--lav-l);color:var(--lav)">精動 ${fs.y}/${fs.total}</span>
+        </div>
+        ${m.notes?`<div style="font-size:12px;color:var(--navy-l);margin-top:8px">${m.notes}</div>`:''}
+      </div>`;}).join('')}`;
+  } else if(currentCaseTab==='appts'){
+    body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openApptModal('${c.id}')">+ 新增預約</button></div>
+    <div class="card">${cA.length===0?'<div class="empty"><div class="ei">📅</div>尚無預約</div>':cA.map(a=>`
+    <div class="card-row">
+      <div style="width:9px;height:9px;border-radius:50%;background:${a.status==='done'?'var(--sage)':'var(--peach)'};flex-shrink:0"></div>
+      <div style="flex:1"><div style="font-weight:600;font-size:13px">${a.date} ${a.time}</div>
+      <div style="font-size:11px;color:var(--muted)">${a.type==='group'?`👥${a.groupSize}人`:'👤個別'} · ${a.note||'–'}</div></div>
+      <div style="text-align:right">
+        <div style="font-weight:700;color:var(--sage-d);font-size:13px">$${a.fee}</div>
+        <button class="btn btn-border btn-sm" style="margin-top:3px" onclick="toggleApptStatus('${a.id}')">${a.status==='done'?'已完成':'完成'}</button>
+      </div>
+    </div>`).join('')}</div>`;
+  }
+
+  return`
+  <button class="back-btn" onclick="currentCase=null;render()">← 返回列表</button>
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+    <div class="av" style="width:48px;height:48px;background:${c.color};font-size:20px">${c.name[0]||'?'}</div>
+    <div><div style="font-family:var(--fh);font-size:20px">${c.name}</div>
+    <div style="font-size:11px;color:var(--muted)">${c.diagnosis||'–'} · ${age(c.dob)}歲 · ${c.sessions}次 · $${totalInc.toLocaleString()}</div></div>
+  </div>
+  <div class="tabs">${TABS.map(([k,l])=>`<button class="tab${currentCaseTab===k?' active':''}" onclick="currentCaseTab='${k}';render()">${l}</button>`).join('')}</div>
+  ${body}`;
+}
+
+// ══════════════════════════════════════════════════
+// CALENDAR
+// ══════════════════════════════════════════════════
+function renderCalendar(){
+  const days=daysInMonth(calYear,calMonth),start=firstDay(calYear,calMonth);
+  const aMap={};DB.appts.forEach(a=>{if(!aMap[a.date])aMap[a.date]=[];aMap[a.date].push(a);});
+  const today=new Date();
+  const fmt=d=>`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  let cells='';
+  for(let i=0;i<start;i++)cells+='<div></div>';
+  for(let d=1;d<=days;d++){
+    const key=fmt(d),has=aMap[key]||[],isT=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear(),isSel=calSel===d;
+    cells+=`<div class="cell${isT?' today':''}${isSel?' sel':''}" onclick="calSel=${isSel?'null':d};render()">
+      <div class="cnum">${d}</div>
+      <div class="cdots">${has.slice(0,4).map(a=>`<div class="cdot" style="background:${caseColor(a.caseId)}"></div>`).join('')}</div>
+    </div>`;
+  }
+  let selDetail='';
+  if(calSel){
+    const key=fmt(calSel),dA=aMap[key]||[];
+    selDetail=`<div class="card" style="margin-top:12px">
+      <div class="stitle">📋 ${calMonth+1}月${calSel}日</div>
+      ${dA.length===0?'<div style="color:var(--muted);font-size:13px">當天沒有預約</div>':dA.map(a=>`
+      <div class="card-row">
+        <div class="av" style="width:32px;height:32px;background:${caseColor(a.caseId)};font-size:12px">${caseName(a.caseId)[0]||'?'}</div>
+        <div style="flex:1"><div style="font-weight:600;font-size:13px">${caseName(a.caseId)} · ${a.time}</div>
+        <div style="font-size:11px;color:var(--muted)">${a.type==='group'?`👥${a.groupSize}人`:'👤個別'} · ${a.note||'–'}</div></div>
+        <div style="text-align:right"><div style="font-weight:700;color:var(--sage-d);font-size:13px">$${a.fee}</div>
+        <span class="tag" style="font-size:10px;background:${a.status==='done'?'var(--sage-l)':'var(--peach-l)'};color:${a.status==='done'?'var(--sage-d)':'var(--peach)'}">${a.status==='done'?'已完成':'預約中'}</span></div>
+      </div>`).join('')}
+    </div>`;
+  }
+  return`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="ptitle" style="margin-bottom:0">行事曆</div>
+    <button class="btn btn-peach btn-sm" onclick="openApptModal()">+ 新增預約</button>
+  </div>
+  <div class="card">
+    <div class="cal-hd">
+      <button class="cal-nav" onclick="calYear=${calMonth===0?calYear-1:calYear};calMonth=${calMonth===0?11:calMonth-1};calSel=null;render()">‹</button>
+      <div class="cal-title">${calYear} · ${MONTHS[calMonth]}</div>
+      <button class="cal-nav" onclick="calYear=${calMonth===11?calYear+1:calYear};calMonth=${calMonth===11?0:calMonth+1};calSel=null;render()">›</button>
+    </div>
+    <div class="cal-grid">${DAYS.map(d=>`<div class="cdn">${d}</div>`).join('')}${cells}</div>
+  </div>${selDetail}`;
+}
+
+// ══════════════════════════════════════════════════
+// INCOME
+// ══════════════════════════════════════════════════
+function renderIncome(){
+  const mA=DB.appts.filter(a=>{const d=new Date(a.date);return d.getFullYear()===incomeYear&&d.getMonth()===incomeMonth;});
+  const done=mA.filter(a=>a.status==='done');
+  const indDone=done.filter(a=>a.type==='individual');
+  const grpDone=done.filter(a=>a.type==='group');
+  const totalDone=done.reduce((s,a)=>s+a.fee,0);
+  const totalUp=mA.filter(a=>a.status==='upcoming').reduce((s,a)=>s+a.fee,0);
+  const monthly=Array.from({length:12},(_,m)=>{const ma=DB.appts.filter(a=>{const d=new Date(a.date);return d.getFullYear()===incomeYear&&d.getMonth()===m&&a.status==='done';});return ma.reduce((s,a)=>s+a.fee,0);});
+  const maxM=Math.max(...monthly,1);
+  const byCase=DB.cases.map(c=>{const ca=done.filter(a=>a.caseId===c.id);return{...c,count:ca.length,income:ca.reduce((s,a)=>s+a.fee,0)};}).filter(c=>c.income>0).sort((a,b)=>b.income-a.income);
+  const opts=Array.from({length:12},(_,m)=>`<option value="${incomeYear}-${m}"${incomeMonth===m?' selected':''}>${incomeYear}年 ${MONTHS[m]}</option>`).join('');
+  return`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="ptitle" style="margin-bottom:0">收入管理</div>
+    <select class="fsel" style="width:auto;font-size:12px;padding:7px 10px" onchange="const[y,m]=this.value.split('-');incomeYear=+y;incomeMonth=+m;render()">${opts}</select>
+  </div>
+  <div class="stat-grid">
+    <div class="stat" style="background:var(--sage-l)"><div class="stat-ic">✅</div><div class="stat-v" style="color:var(--sage-d);font-size:17px">$${totalDone.toLocaleString()}</div><div class="stat-l">已完成收入</div></div>
+    <div class="stat" style="background:var(--gold-l)"><div class="stat-ic">⏳</div><div class="stat-v" style="color:var(--gold);font-size:17px">$${totalUp.toLocaleString()}</div><div class="stat-l">預計收入</div></div>
+    <div class="stat" style="background:#EBF0FC"><div class="stat-ic">👤</div><div class="stat-v" style="color:#5B78C9">${indDone.length}<span style="font-size:12px;font-weight:400;margin-left:2px">次</span></div><div class="stat-l">個別課</div></div>
+    <div class="stat" style="background:var(--lav-l)"><div class="stat-ic">👥</div><div class="stat-v" style="color:var(--lav)">${grpDone.length}<span style="font-size:12px;font-weight:400;margin-left:2px">次</span></div><div class="stat-l">團體課</div></div>
+  </div>
+  <div class="card">
+    <div class="stitle">📈 ${incomeYear} 年月收入</div>
+    <div class="inc-bars">${monthly.map((v,i)=>`<div class="ib-wrap">
+      <div class="ib-v">${v>0?'$'+(v/1000).toFixed(0)+'k':''}</div>
+      <div class="ib" style="height:${Math.max((v/maxM)*90,v>0?4:2)}px;background:${i===incomeMonth?'var(--sage-d)':'var(--sage-l)'}"></div>
+      <div class="ib-l" style="color:${i===incomeMonth?'var(--sage-d)':'var(--muted)'};font-weight:${i===incomeMonth?700:400}">${i+1}</div>
+    </div>`).join('')}</div>
+  </div>
+  ${byCase.length?`<div class="card"><div class="stitle">👥 個案分佈</div>${byCase.map(c=>`
+  <div style="margin-bottom:11px">
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:${c.color}"></div><span style="font-weight:600">${c.name}</span></div>
+      <span style="color:var(--navy-l)">$${c.income.toLocaleString()} (${c.count}次)</span>
+    </div>
+    <div class="prog"><div class="prog-bar" style="width:${totalDone?(c.income/totalDone*100):0}%;background:${c.color}"></div></div>
+  </div>`).join('')}</div>`:''}`;
+}
+
+// ══════════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════════
+function renderSettings(){
+  const s=DB.settings;
+  return`
+  <div class="ptitle">收費設定 ⚙️</div>
+  <div class="psub">依課程類型與時段設定費用</div>
+  <div class="card">
+    <div class="stitle">👤 個別課</div>
+    <div class="frow">
+      <div class="fg"><label class="fl">平日</label><input class="fi" type="number" id="s-ind-wd" value="${s.fee_individual_weekday||1200}"></div>
+      <div class="fg"><label class="fl">假日</label><input class="fi" type="number" id="s-ind-we" value="${s.fee_individual_weekend||1500}"></div>
+    </div>
+    <div class="stitle" style="margin-top:8px">👥 團體課（2人班）</div>
+    <div class="frow">
+      <div class="fg"><label class="fl">平日</label><input class="fi" type="number" id="s-g2-wd" value="${s.fee_group2_weekday||900}"></div>
+      <div class="fg"><label class="fl">假日</label><input class="fi" type="number" id="s-g2-we" value="${s.fee_group2_weekend||1100}"></div>
+    </div>
+    <div class="stitle" style="margin-top:8px">👥 團體課（3人班）</div>
+    <div class="frow">
+      <div class="fg"><label class="fl">平日</label><input class="fi" type="number" id="s-g3-wd" value="${s.fee_group3_weekday||800}"></div>
+      <div class="fg"><label class="fl">假日</label><input class="fi" type="number" id="s-g3-we" value="${s.fee_group3_weekend||1000}"></div>
+    </div>
+    <button class="btn btn-sage btn-full" onclick="saveSettings()">💾 儲存設定</button>
+  </div>`;
+}
+
+async function saveSettings(){
+  DB.settings.fee_individual_weekday=document.getElementById('s-ind-wd').value;
+  DB.settings.fee_individual_weekend=document.getElementById('s-ind-we').value;
+  DB.settings.fee_group2_weekday=document.getElementById('s-g2-wd').value;
+  DB.settings.fee_group2_weekend=document.getElementById('s-g2-we').value;
+  DB.settings.fee_group3_weekday=document.getElementById('s-g3-wd').value;
+  DB.settings.fee_group3_weekend=document.getElementById('s-g3-we').value;
+  toast('💾 儲存中…');await saveAll('settings')();toast('✅ 設定已儲存');
+}
+
+// ══════════════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+window.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)o.classList.remove('open');});});
+
+// ── Case ──
+function openCaseModal(editId=null){
+  const c=editId?DB.cases.find(x=>x.id===editId):null;
+  document.getElementById('mc-title').textContent=c?'編輯個案':'新增個案';
+  document.getElementById('mc-body').innerHTML=`
+  <div class="fg"><label class="fl">姓名 *</label><input class="fi" id="cf-name" value="${c?.name||''}" placeholder="個案姓名"></div>
+  <div class="frow">
+    <div class="fg"><label class="fl">生日</label><input class="fi" type="date" id="cf-dob" value="${c?.dob||''}"></div>
+    <div class="fg"><label class="fl">狀態</label><select class="fsel" id="cf-status"><option value="active"${c?.status==='active'?' selected':''}>治療中</option><option value="pause"${c?.status==='pause'?' selected':''}>暫停</option></select></div>
+  </div>
+  <div class="fg"><label class="fl">診斷</label><input class="fi" id="cf-diag" value="${c?.diagnosis||''}" placeholder="如：發展遲緩、ASD、感統障礙"></div>
+  <div class="frow">
+    <div class="fg"><label class="fl">監護人</label><input class="fi" id="cf-guardian" value="${c?.guardian||''}"></div>
+    <div class="fg"><label class="fl">電話</label><input class="fi" id="cf-phone" value="${c?.phone||''}" type="tel"></div>
+  </div>
+  <div class="fg"><label class="fl">備註</label><textarea class="fta" id="cf-note">${c?.note||''}</textarea></div>
+  <button class="btn btn-sage btn-full" onclick="submitCase('${editId||''}')">💾 ${c?'儲存修改':'建立個案'}</button>`;
+  openModal('modal-case');
+}
+
+async function submitCase(editId){
+  const name=document.getElementById('cf-name').value.trim();
+  if(!name){toast('❌ 請輸入姓名');return;}
+  const data={id:editId||newId(),name,dob:document.getElementById('cf-dob').value,diagnosis:document.getElementById('cf-diag').value,guardian:document.getElementById('cf-guardian').value,phone:document.getElementById('cf-phone').value,status:document.getElementById('cf-status').value,note:document.getElementById('cf-note').value};
+  if(editId){const idx=DB.cases.findIndex(c=>c.id===editId);data.sessions=DB.cases[idx].sessions;data.color=DB.cases[idx].color;DB.cases[idx]=data;if(currentCase?.id===editId)currentCase=data;}
+  else{data.sessions=0;data.color=COLORS[DB.cases.length%COLORS.length];DB.cases.push(data);}
+  closeModal('modal-case');toast('💾 儲存中…');await saveAll('cases')();toast('✅ 已儲存');render();
+}
+
+async function deleteCase(id){
+  if(!confirm('確定要刪除此個案？所有相關資料都會一併刪除。'))return;
+  DB.cases=DB.cases.filter(c=>c.id!==id);DB.appts=DB.appts.filter(a=>a.caseId!==id);
+  DB.goals=DB.goals.filter(g=>g.caseId!==id);DB.notes=DB.notes.filter(n=>n.caseId!==id);
+  DB.assessments=DB.assessments.filter(a=>a.caseId!==id);DB.milestones=DB.milestones.filter(m=>m.caseId!==id);
+  currentCase=null;toast('🗑 刪除中…');
+  await Promise.all([saveAll('cases')(),saveAll('appts')(),saveAll('goals')(),saveAll('notes')(),saveAll('assess')(),saveAll('milestones')()]);
+  toast('✅ 已刪除');render();
+}
+
+// ── Appt ──
+function openApptModal(prefillCaseId=''){
+  const isWeekend=d=>{if(!d)return false;const day=new Date(d).getDay();return day===0||day===6;};
+  document.getElementById('ma-title').textContent='新增預約';
+  document.getElementById('ma-body').innerHTML=`
+  <div class="fg"><label class="fl">個案 *</label>
+    <select class="fsel" id="af-case" onchange="autoFillFee()">
+      <option value="">選擇個案…</option>
+      ${DB.cases.map(c=>`<option value="${c.id}"${c.id===prefillCaseId?' selected':''}>${c.name}</option>`).join('')}
+    </select>
+  </div>
+  <div class="frow">
+    <div class="fg"><label class="fl">日期 *</label><input class="fi" type="date" id="af-date" value="${new Date().toISOString().slice(0,10)}" onchange="autoFillFee()"></div>
+    <div class="fg"><label class="fl">時間</label><input class="fi" type="time" id="af-time" value="09:00"></div>
+  </div>
+  <div class="frow">
+    <div class="fg"><label class="fl">課程類型</label>
+      <select class="fsel" id="af-type" onchange="toggleGroupSize();autoFillFee()">
+        <option value="individual">👤 個別課</option>
+        <option value="group">👥 團體課</option>
+      </select>
+    </div>
+    <div class="fg" id="groupSizeWrap" style="display:none"><label class="fl">人數</label>
+      <select class="fsel" id="af-gsize" onchange="autoFillFee()">
+        <option value="2">2人班</option><option value="3">3人班</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">費用（元）</label><input class="fi" type="number" id="af-fee" value="${DB.settings.fee_individual_weekday||1200}"></div>
+  <div class="fg"><label class="fl">治療內容</label><input class="fi" id="af-note" placeholder="如：精細動作訓練"></div>
+  <button class="btn btn-peach btn-full" onclick="submitAppt()">📅 新增預約</button>`;
+  openModal('modal-appt');
+}
+
+function toggleGroupSize(){const t=document.getElementById('af-type')?.value;const w=document.getElementById('groupSizeWrap');if(w)w.style.display=t==='group'?'block':'none';}
+function autoFillFee(){
+  const type=document.getElementById('af-type')?.value||'individual';
+  const date=document.getElementById('af-date')?.value||'';
+  const gsize=+document.getElementById('af-gsize')?.value||2;
+  const isWE=date?[0,6].includes(new Date(date).getDay()):false;
+  const slot=isWE?'weekend':'weekday';
+  const fee=calcFee(type,gsize,slot);
+  const fi=document.getElementById('af-fee');if(fi)fi.value=fee;
+}
+
+async function submitAppt(){
+  const caseId=document.getElementById('af-case').value,date=document.getElementById('af-date').value;
+  if(!caseId||!date){toast('❌ 請選擇個案和日期');return;}
+  const type=document.getElementById('af-type').value;
+  const gsize=type==='group'?+document.getElementById('af-gsize').value:1;
+  const isWE=[0,6].includes(new Date(date).getDay());
+  const a={id:newId(),caseId,date,time:document.getElementById('af-time').value,duration:50,fee:+document.getElementById('af-fee').value||0,note:document.getElementById('af-note').value,status:'upcoming',type,groupSize:gsize,timeSlot:isWE?'weekend':'weekday'};
+  DB.appts.push(a);
+  const cidx=DB.cases.findIndex(c=>c.id===caseId);if(cidx>=0)DB.cases[cidx].sessions++;
+  closeModal('modal-appt');toast('💾 儲存中…');await Promise.all([saveAll('appts')(),saveAll('cases')()]);toast('✅ 預約已新增');render();
+}
+
+async function toggleApptStatus(id){
+  const a=DB.appts.find(x=>x.id===id);if(!a)return;
+  a.status=a.status==='done'?'upcoming':'done';
+  toast('💾 更新中…');await saveAll('appts')();toast('✅ 已更新');render();
+}
+
+// ── Goal ──
+function openGoalModal(editId=null){
+  const g=editId?DB.goals.find(x=>x.id===editId):null;
+  document.getElementById('mg-title').textContent=g?'編輯目標':`${currentCase?.name} · 新增目標`;
+  document.getElementById('mg-body').innerHTML=`
+  <div class="fg"><label class="fl">治療領域 *</label>
+    <select class="fsel" id="gf-area">
+      ${['粗大動作','精細動作','感覺統合','自理能力','社交技巧','認知發展','語言溝通','行為情緒','書寫前技巧','注意力'].map(a=>`<option${g?.area===a?' selected':''}>${a}</option>`).join('')}
+    </select>
+  </div>
+  <div class="fg"><label class="fl">目標描述 *</label><textarea class="fta" id="gf-goal" placeholder="描述具體可測量的目標">${g?.goal||''}</textarea></div>
+  <div class="frow">
+    <div class="fg"><label class="fl">目標日期</label><input class="fi" type="date" id="gf-target" value="${g?.target||''}"></div>
+    <div class="fg"><label class="fl">進度 (%)</label><input class="fi" type="number" min="0" max="100" id="gf-prog" value="${g?.progress||0}"></div>
+  </div>
+  <div class="fg"><label class="fl">狀態</label><select class="fsel" id="gf-status"><option value="active"${g?.status==='active'?' selected':''}>進行中</option><option value="done"${g?.status==='done'?' selected':''}>已達成</option></select></div>
+  <button class="btn btn-lav btn-full" onclick="submitGoal('${editId||''}')">🎯 ${g?'儲存修改':'新增目標'}</button>`;
+  openModal('modal-goal');
+}
+
+async function submitGoal(editId){
+  const area=document.getElementById('gf-area').value,goal=document.getElementById('gf-goal').value.trim();
+  if(!goal){toast('❌ 請填寫目標');return;}
+  const data={id:editId||newId(),caseId:currentCase.id,area,goal,target:document.getElementById('gf-target').value,progress:+document.getElementById('gf-prog').value||0,status:document.getElementById('gf-status').value};
+  if(editId){const idx=DB.goals.findIndex(g=>g.id===editId);DB.goals[idx]=data;}
+  else DB.goals.push(data);
+  closeModal('modal-goal');toast('💾 儲存中…');await saveAll('goals')();toast('✅ 已儲存');render();
+}
+
+function editGoalProgress(id){openGoalModal(id);}
+async function deleteGoal(id){if(!confirm('確定刪除此目標？'))return;DB.goals=DB.goals.filter(g=>g.id!==id);toast('🗑 刪除中…');await saveAll('goals')();toast('✅ 已刪除');render();}
+
+// ── Note ──
+function openNoteModal(editId=null){
+  const n=editId?DB.notes.find(x=>x.id===editId):null;
+  soapActiveTab=n?'S':'S';
+  document.getElementById('mn-title').textContent=n?'編輯紀錄':`${currentCase?.name} · 新增紀錄`;
+  renderNoteModal(n);openModal('modal-note');
+}
+
+function renderNoteModal(n=null){
+  document.getElementById('mn-body').innerHTML=`
+  <div class="frow">
+    <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${n?.date||new Date().toISOString().slice(0,10)}"></div>
+    <div class="fg"><label class="fl">治療師</label><input class="fi" id="nf-therapist" value="${n?.therapist||'治療師'}"></div>
+  </div>
+  <div class="fg"><label class="fl">出席狀態</label>
+    <select class="fsel" id="nf-att">
+      <option value="present"${n?.attendance==='present'?' selected':''}>✅ 出席</option>
+      <option value="absent"${n?.attendance==='absent'?' selected':''}>❌ 缺課</option>
+      <option value="late"${n?.attendance==='late'?' selected':''}>⏰ 遲到</option>
+      <option value="makeup"${n?.attendance==='makeup'?' selected':''}>🔄 補課</option>
+    </select>
+  </div>
+  <div class="fg">
+    <label class="fl">SOAP 治療紀錄</label>
+    <div class="soap-tabs">
+      ${[['S','主觀','var(--sage-d)'],['O','客觀','#5B78C9'],['A','評估','var(--peach)'],['P','計畫','var(--lav)']].map(([k,l,col])=>
+        `<button class="soap-tab${soapActiveTab===k?' active':''}" onclick="soapActiveTab='${k}';renderSoapContent()" style="${soapActiveTab===k?`background:${col};border-color:${col}`:''}">
+          <span style="font-size:13px;font-weight:800">${k}</span><br><span style="font-size:9px">${l}</span>
+        </button>`).join('')}
+    </div>
+    <div id="soap-content"></div>
+  </div>
+  <div class="fg"><label class="fl">活動項目</label><input class="fi" id="nf-activities" value="${n?.activities||''}" placeholder="如：平衡板、黏土、剪紙"></div>
+  <div class="fg"><label class="fl">家長聯絡事項</label><input class="fi" id="nf-parent" value="${n?.parentNote||''}" placeholder="回家作業、注意事項…"></div>
+  <button class="btn btn-peach btn-full" onclick="submitNote('${n?.id||''}')">📝 ${n?'儲存修改':'儲存紀錄'}</button>`;
+  // store current note data for soap fields
+  window._noteData=n;
+  renderSoapContent();
+}
+
+function renderSoapContent(){
+  const n=window._noteData;
+  const placeholders={S:'家長主訴、個案今日狀態、情緒…',O:'觀察到的客觀表現、測量數值…',A:'治療師評估與分析…',P:'下次治療計畫、目標調整…'};
+  const vals={S:n?.soapS||'',O:n?.soapO||'',A:n?.soapA||'',P:n?.soapP||''};
+  const chipGroups={S:['attendance','cooperation'],O:['performance','sensory','motor'],A:['performance'],P:['homework']};
+  const groups=chipGroups[soapActiveTab]||[];
+  const el=document.getElementById('soap-content');if(!el)return;
+  el.innerHTML=`
+  ${groups.map(g=>`<div class="chip-group">${(CHIPS[g]||[]).map(c=>`<button class="chip" onclick="appendToSoap('${soapActiveTab}','${c.v.replace(/'/g,'\\\'')}')">${c.l}</button>`).join('')}</div>`).join('')}
+  <textarea class="fta" id="nf-soap-${soapActiveTab}" placeholder="${placeholders[soapActiveTab]}">${vals[soapActiveTab]}</textarea>`;
+  // update soap-tabs highlight
+  document.querySelectorAll('.soap-tab').forEach(t=>{
+    const k=t.querySelector('span')?.textContent;
+    t.classList.toggle('active',k===soapActiveTab);
+    const cols={S:'var(--sage-d)',O:'#5B78C9',A:'var(--peach)',P:'var(--lav)'};
+    if(k===soapActiveTab){t.style.background=cols[k];t.style.borderColor=cols[k];}
+    else{t.style.background='';t.style.borderColor='';}
+  });
+}
+
+function appendToSoap(tab,val){
+  const ta=document.getElementById(`nf-soap-${tab}`);if(!ta)return;
+  ta.value+=(ta.value&&!ta.value.endsWith('\n')?'，':'')+val;ta.focus();
+}
+
+async function submitNote(editId){
+  const content=document.getElementById(`nf-soap-${soapActiveTab}`)?.value||'';
+  // collect all soap fields
+  const soapVals={S:'',O:'',A:'',P:''};
+  ['S','O','A','P'].forEach(k=>{const ta=document.getElementById(`nf-soap-${k}`);if(ta)soapVals[k]=ta.value;});
+  // preserve current tab value
+  soapVals[soapActiveTab]=document.getElementById(`nf-soap-${soapActiveTab}`)?.value||'';
+  const data={id:editId||newId(),caseId:currentCase.id,date:document.getElementById('nf-date').value,attendance:document.getElementById('nf-att').value,soapS:soapVals.S,soapO:soapVals.O,soapA:soapVals.A,soapP:soapVals.P,activities:document.getElementById('nf-activities').value,parentNote:document.getElementById('nf-parent').value,therapist:document.getElementById('nf-therapist').value};
+  if(editId){const idx=DB.notes.findIndex(n=>n.id===editId);DB.notes[idx]=data;}
+  else DB.notes.push(data);
+  closeModal('modal-note');toast('💾 儲存中…');await saveAll('notes')();toast('✅ 紀錄已儲存');render();
+}
+
+function editNote(id){openNoteModal(id);}
+async function deleteNote(id){if(!confirm('確定刪除此紀錄？'))return;DB.notes=DB.notes.filter(n=>n.id!==id);toast('🗑 刪除中…');await saveAll('notes')();toast('✅ 已刪除');render();}
+
+// ── Assessment ──
+function openAssessModal(editId=null){
+  const a=editId?DB.assessments.find(x=>x.id===editId):null;
+  let scores={},pcts={};
+  try{scores=JSON.parse(a?.scores||'{}');}catch(e){}
+  try{pcts=JSON.parse(a?.percentiles||'{}');}catch(e){}
+  const toolKey=a?.tool||'PDMS-2';
+  document.getElementById('mas-title').textContent=a?'編輯評估':`${currentCase?.name} · 新增評估`;
+  document.getElementById('mas-body').innerHTML=`
+  <div class="frow">
+    <div class="fg"><label class="fl">評估工具 *</label>
+      <select class="fsel" id="asf-tool" onchange="renderAssessScores()">
+        ${Object.keys(ASSESS_TOOLS).map(k=>`<option value="${k}"${k===toolKey?' selected':''}>${ASSESS_TOOLS[k].name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><label class="fl">評估日期</label><input class="fi" type="date" id="asf-date" value="${a?.date||new Date().toISOString().slice(0,10)}"></div>
+  </div>
+  <div id="assess-scores-wrap"></div>
+  <div class="fg"><label class="fl">質性描述</label><textarea class="fta" id="asf-notes" placeholder="評估過程觀察、合作度、行為表現…">${a?.notes||''}</textarea></div>
+  <div class="fg"><label class="fl">建議與計畫</label><textarea class="fta" id="asf-rec" placeholder="根據評估結果的治療建議…">${a?.recommendations||''}</textarea></div>
+  <button class="btn btn-teal btn-full" onclick="submitAssess('${editId||''}')">📊 ${a?'儲存修改':'儲存評估'}</button>`;
+  window._assessEdit={scores,pcts,toolKey};
+  renderAssessScores();
+  openModal('modal-assess');
+}
+
+function renderAssessScores(){
+  const toolKey=document.getElementById('asf-tool')?.value||'PDMS-2';
+  const tool=ASSESS_TOOLS[toolKey];
+  const prev=window._assessEdit||{};
+  const s=toolKey===prev.toolKey?prev.scores:{};
+  const p=toolKey===prev.toolKey?prev.pcts:{};
+  const wrap=document.getElementById('assess-scores-wrap');if(!wrap)return;
+  wrap.innerHTML=`<div class="fg"><label class="fl">分數</label>
+    ${tool.scores.map(name=>`
+    <div style="display:grid;grid-template-columns:1fr 80px ${tool.hasPercentile?'80px':''};gap:8px;align-items:center;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--navy)">${name}</span>
+      <input class="fi" type="number" id="sc-${name}" placeholder="分數" value="${s[name]||''}">
+      ${tool.hasPercentile?`<input class="fi" type="number" id="pc-${name}" placeholder="百分位" value="${p[name]||''}">`:''} 
+    </div>`).join('')}
+    ${tool.hasPercentile?`<div style="font-size:10px;color:var(--muted);margin-top:-4px">第二欄為百分位數（Percentile）</div>`:''}
+  </div>`;
+}
+
+async function submitAssess(editId){
+  const toolKey=document.getElementById('asf-tool').value;
+  const tool=ASSESS_TOOLS[toolKey];
+  const scores={},pcts={};
+  tool.scores.forEach(name=>{
+    const sv=document.getElementById(`sc-${name}`)?.value;if(sv)scores[name]=sv;
+    if(tool.hasPercentile){const pv=document.getElementById(`pc-${name}`)?.value;if(pv)pcts[name]=pv;}
+  });
+  const data={id:editId||newId(),caseId:currentCase.id,tool:toolKey,date:document.getElementById('asf-date').value,scores:JSON.stringify(scores),percentiles:JSON.stringify(pcts),notes:document.getElementById('asf-notes').value,recommendations:document.getElementById('asf-rec').value};
+  if(editId){const idx=DB.assessments.findIndex(a=>a.id===editId);DB.assessments[idx]=data;}
+  else DB.assessments.push(data);
+  closeModal('modal-assess');toast('💾 儲存中…');await saveAll('assess')();toast('✅ 評估已儲存');render();
+}
+
+function editAssess(id){openAssessModal(id);}
+async function deleteAssess(id){if(!confirm('確定刪除此評估記錄？'))return;DB.assessments=DB.assessments.filter(a=>a.id!==id);toast('🗑 刪除中…');await saveAll('assess')();toast('✅ 已刪除');render();}
+
+// ── Milestones ──
+function openMilestoneModal(){
+  const c=currentCase;
+  const ageGrp=getAgeGroup(c.dob);
+  const ms=MILESTONES[ageGrp];
+  document.getElementById('mm-title').textContent=`${c.name} · 發展里程碑`;
+  document.getElementById('mm-body').innerHTML=`
+  <div style="background:var(--sage-l);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--sage-d)">
+    📌 根據 ${c.name} 目前年齡（${ageMonths(c.dob)}個月），對應 <strong>${ms.title}</strong> 里程碑
+  </div>
+  <div class="fg"><label class="fl">評估日期</label><input class="fi" type="date" id="mf-date" value="${new Date().toISOString().slice(0,10)}"></div>
+  ${renderMilestoneSection('粗大動作','mf-gross',ms.gross)}
+  ${renderMilestoneSection('精細動作','mf-fine',ms.fine)}
+  ${renderMilestoneSection('認知發展','mf-cog',ms.cognitive)}
+  ${renderMilestoneSection('社交情緒','mf-social',ms.social)}
+  ${renderMilestoneSection('生活自理','mf-sc',ms.selfcare)}
+  <div class="fg"><label class="fl">補充說明</label><textarea class="fta" id="mf-notes" placeholder="其他觀察…"></textarea></div>
+  <button class="btn btn-gold btn-full" onclick="submitMilestone('${ageGrp}')">🌱 儲存里程碑紀錄</button>`;
+  openModal('modal-milestone');
+}
+
+function renderMilestoneSection(title,prefix,items){
+  return`<div class="milestone-section">
+    <div class="milestone-title">${title}</div>
+    ${items.map((item,i)=>`
+    <div class="milestone-item">
+      <div style="flex:1;font-size:13px;color:var(--navy)">${item}</div>
+      <div style="display:flex;gap:5px">
+        <button class="milestone-check" id="${prefix}-${i}-yes" onclick="setMilestone('${prefix}',${i},'yes')">✓</button>
+        <button class="milestone-check" id="${prefix}-${i}-no" onclick="setMilestone('${prefix}',${i},'no')">✗</button>
+        <button class="milestone-check" id="${prefix}-${i}-na" onclick="setMilestone('${prefix}',${i},'na')">–</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+window._msData={};
+function setMilestone(prefix,i,val){
+  if(!window._msData[prefix])window._msData[prefix]={};
+  window._msData[prefix][i]=val;
+  ['yes','no','na'].forEach(v=>{
+    const el=document.getElementById(`${prefix}-${i}-${v}`);
+    if(el){el.className='milestone-check'+(v===val?' '+v:'');}
+  });
+}
+
+async function submitMilestone(ageGrp){
+  const toObj=prefix=>{
+    const ms=MILESTONES[ageGrp];
+    const areaMap={gross:'mf-gross',fine:'mf-fine',cognitive:'mf-cog',social:'mf-social',selfcare:'mf-sc'};
+    const data={};
+    Object.entries(areaMap).forEach(([area,p])=>{
+      const items=ms[area]||[];
+      items.forEach((item,i)=>{data[item]=window._msData[p]?.[i]||'na';});
+    });
+    return data;
+  };
+  const data={id:newId(),caseId:currentCase.id,date:document.getElementById('mf-date').value,ageGroup:ageGrp,
+    gross:JSON.stringify(toObj('mf-gross')||{}),fine:JSON.stringify(toObj('mf-fine')||{}),
+    cognitive:JSON.stringify(toObj('mf-cog')||{}),social:JSON.stringify(toObj('mf-social')||{}),
+    selfcare:JSON.stringify(toObj('mf-sc')||{}),notes:document.getElementById('mf-notes').value};
+  DB.milestones.push(data);window._msData={};
+  closeModal('modal-milestone');toast('💾 儲存中…');await saveAll('milestones')();toast('✅ 里程碑已儲存');render();
+}
+
+function viewMilestone(id){
+  const m=DB.milestones.find(x=>x.id===id);if(!m)return;
+  const ag=MILESTONES[m.ageGroup]||{};
+  const parse=s=>{try{return JSON.parse(s||'{}');}catch(e){return{};}};
+  const areas=[['粗大動作',parse(m.gross)],['精細動作',parse(m.fine)],['認知發展',parse(m.cognitive)],['社交情緒',parse(m.social)],['生活自理',parse(m.selfcare)]];
+  document.getElementById('mm-title').textContent=`里程碑紀錄 · ${m.date}`;
+  document.getElementById('mm-body').innerHTML=`
+  <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${ag.title||m.ageGroup}</div>
+  ${areas.map(([title,obj])=>`
+    <div class="milestone-section">
+      <div class="milestone-title">${title}</div>
+      ${Object.entries(obj).map(([item,val])=>`
+      <div class="milestone-item">
+        <div style="flex:1;font-size:13px">${item}</div>
+        <span class="tag" style="background:${val==='yes'?'var(--sage-l)':val==='no'?'var(--red-l)':'var(--border)'};color:${val==='yes'?'var(--sage-d)':val==='no'?'var(--red)':'var(--muted)'}">${val==='yes'?'✓ 達到':val==='no'?'✗ 未達':'– 未測'}</span>
+      </div>`).join('')}
+    </div>`).join('')}
+  ${m.notes?`<div class="card" style="margin-top:10px;font-size:13px">${m.notes}</div>`:''}
+  <button class="btn btn-red btn-full" style="margin-top:12px" onclick="deleteMilestone('${id}')">🗑 刪除此紀錄</button>`;
+  openModal('modal-milestone');
+}
+
+async function deleteMilestone(id){if(!confirm('確定刪除？'))return;DB.milestones=DB.milestones.filter(m=>m.id!==id);closeModal('modal-milestone');toast('🗑 刪除中…');await saveAll('milestones')();toast('✅ 已刪除');render();}
+
+// ══════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════
+async function boot(){
+  try{
+    await initSheets();await loadAll();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='flex';
+    render();
+  }catch(e){
+    document.getElementById('loading').innerHTML=`
+    <div style="text-align:center;padding:30px">
+      <div style="font-size:36px;margin-bottom:12px">❌</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px">連線失敗</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px">請確認網路連線後重試</div>
+      <button onclick="location.reload()" style="background:var(--sage-d);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:14px;cursor:pointer">重新載入</button>
+    </div>`;
+    console.error(e);
+  }
+}
+boot();
+</script>
+</body>
+</html>
