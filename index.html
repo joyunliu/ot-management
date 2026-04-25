@@ -323,7 +323,7 @@ const MILESTONES = {
 // ══════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════
-let DB = { cases:[], appts:[], goals:[], notes:[], assessments:[], milestones:[], settings:{} };
+let DB = { cases:[], appts:[], goals:[], notes:[], assessments:[], milestones:[], initialAssessments:[], settings:{} };
 let currentNav='dashboard', currentCase=null, currentCaseTab='info';
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=null;
 let incomeYear=new Date().getFullYear(), incomeMonth=new Date().getMonth();
@@ -360,7 +360,7 @@ async function initSheets(){
   const data=await res.json();
   if(!data.sheets) throw new Error('Cannot access spreadsheet. Check permissions.');
   const existingSheets=data.sheets.map(s=>s.properties.title);
-  const required=['個案','預約','目標','紀錄','評估','里程碑','設定'];
+  const required=['個案','預約','目標','紀錄','評估','里程碑','設定','初評報告'];
   const missing=required.filter(s=>!existingSheets.includes(s));
   if(missing.length>0){
     throw new Error(`請在 Google Sheet 中建立以下工作表：${missing.join('、')}`);
@@ -372,18 +372,19 @@ async function initSheets(){
 // ══════════════════════════════════════════════════
 async function loadAll(){
   const t=await getAccessToken();
-  const ranges=['個案!A2:L999','預約!A2:K999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99'];
+  const ranges=['個案!A2:L999','預約!A2:K999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99','初評報告!A2:C999'];
   const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?`+ranges.map(r=>'ranges='+encodeURIComponent(r)).join('&');
   const res=await fetch(url,{headers:{Authorization:`Bearer ${t}`}});
   const json=await res.json();
   if(!json.valueRanges) throw new Error('batchGet failed: '+(json.error?.message||JSON.stringify(json)));
-  const [cases,appts,goals,notes,assessments,milestones,settings]=json.valueRanges.map(r=>r.values||[]);
+  const [cases,appts,goals,notes,assessments,milestones,settings,initialAssessments]=json.valueRanges.map(r=>r.values||[]);
   DB.cases=cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',gender:r[3]||'',diagnosis:r[4]||'',diagOther:r[5]||'',guardian:r[6]||'',phone:r[7]||'',sessions:+r[8]||0,status:r[9]||'active',color:r[10]||COLORS[0],note:r[11]||''}));
   DB.appts=appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'}));
   DB.goals=goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'}));
   DB.notes=notes.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',attendance:r[3]||'present',soapS:r[4]||'',soapO:r[5]||'',soapA:r[6]||'',soapP:r[7]||'',activities:r[8]||'',parentNote:r[9]||'',therapist:r[10]||''}));
   DB.assessments=assessments.map(r=>({id:r[0],caseId:r[1],tool:r[2]||'',date:r[3]||'',scores:r[4]||'',percentiles:r[5]||'',subtestResults:r[6]||'',notes:r[7]||'',recommendations:r[8]||''}));
   DB.milestones=milestones.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',ageGroup:r[3]||'',gross:r[4]||'',fine:r[5]||'',cognitive:r[6]||'',social:r[7]||'',selfcare:r[8]||'',notes:r[9]||''}));
+  DB.initialAssessments=(initialAssessments||[]).map(r=>({id:r[0],caseId:r[1],data:r[2]||'{}'}));
   DB.settings={};settings.forEach(r=>{if(r[0])DB.settings[r[0]]=r[1]||'';});
   // default fee settings
   if(!DB.settings.fee_assess_init_day)    DB.settings.fee_assess_init_day='3000';
@@ -403,7 +404,8 @@ const saveAll = (key) => ({
   notes:  async()=>{await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));},
   assess: async()=>{await sheetClear('評估!A2:I999');if(DB.assessments.length)await sheetAppend('評估!A2',DB.assessments.map(a=>[a.id,a.caseId,a.tool,a.date,a.scores,a.percentiles,a.subtestResults||'{}',a.notes,a.recommendations]));},
   milestones:async()=>{await sheetClear('里程碑!A2:J999');if(DB.milestones.length)await sheetAppend('里程碑!A2',DB.milestones.map(m=>[m.id,m.caseId,m.date,m.ageGroup,m.gross,m.fine,m.cognitive,m.social,m.selfcare,m.notes]));},
-  settings:async()=>{await sheetClear('設定!A2:B99');const rows=Object.entries(DB.settings);if(rows.length)await sheetAppend('設定!A2',rows);}
+  settings:async()=>{await sheetClear('設定!A2:B99');const rows=Object.entries(DB.settings);if(rows.length)await sheetAppend('設定!A2',rows);},
+  initial:async()=>{await sheetClear('初評報告!A2:C999');if(DB.initialAssessments.length)await sheetAppend('初評報告!A2',DB.initialAssessments.map(a=>[a.id,a.caseId,a.data]));}
 })[key];
 
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
@@ -551,7 +553,7 @@ function renderCaseDetail(){
   const cM=DB.milestones.filter(m=>m.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
   const totalInc=cA.filter(a=>a.status==='done').reduce((s,a)=>s+a.fee,0);
 
-  const TABS=[['info','資料'],['goals','目標'],['notes','紀錄'],['assess','評估'],['milestone','里程碑'],['appts','預約']];
+  const TABS=[['info','資料'],['goals','目標'],['notes','紀錄'],['assess','評估'],['initial','初評報告'],['milestone','里程碑'],['appts','預約']];
   let body='';
 
   if(currentCaseTab==='info'){
@@ -625,6 +627,11 @@ function renderCaseDetail(){
         ${a.notes?`<div style="font-size:12px;color:var(--navy-l);margin-bottom:6px">${a.notes}</div>`:''}
         ${a.recommendations?`<div style="background:var(--sage-l);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--sage-d)">💡 ${a.recommendations}</div>`:''}
       </div>`;}).join('')}`;
+  } else if(currentCaseTab==='initial'){
+    const ia = DB.initialAssessments.find(x=>x.caseId===c.id);
+    let iaData = {};
+    try{ if(ia) iaData = JSON.parse(ia.data||'{}'); }catch(e){}
+    body = renderInitialAssessForm(c, iaData);
   } else if(currentCaseTab==='milestone'){
     body=`<div class="btn-row"><button class="btn btn-gold btn-sm" onclick="openMilestoneModal()">+ 新增里程碑紀錄</button></div>
     ${cM.length===0?`<div class="empty"><div class="ei">🌱</div>尚無里程碑紀錄<br><span style="font-size:11px">目前年齡：${age(c.dob)}歲（${ageMonths(c.dob)}個月）</span></div>`:cM.map(m=>{
@@ -1540,6 +1547,314 @@ function viewMilestone(id){
 }
 
 async function deleteMilestone(id){if(!confirm('確定刪除？'))return;DB.milestones=DB.milestones.filter(m=>m.id!==id);closeModal('modal-milestone');toast('🗑 刪除中…');await saveAll('milestones')();toast('✅ 已刪除');render();}
+
+// ── Initial Assessment ──
+function renderInitialAssessForm(c, d){
+  const chk=(key,val,label)=>{
+    const checked=d[key]===val||Array.isArray(d[key])&&d[key].includes(val);
+    return `<label style="display:inline-flex;align-items:center;gap:4px;margin:3px 6px 3px 0;font-size:13px;cursor:pointer">
+      <input type="checkbox" style="width:15px;height:15px;cursor:pointer" ${checked?'checked':''} onchange="iaSet('${key}','${val}',this.checked,${Array.isArray(d[key])||!d[key]?'true':'false'})"> ${label}</label>`;
+  };
+  const txt=(key,ph,rows=2)=>`<textarea class="fta" style="margin-top:4px;font-size:13px" rows="${rows}" placeholder="${ph}" onchange="iaSetText('${key}',this.value)">${d[key]||''}</textarea>`;
+  const row=(label,body)=>`<tr><td style="padding:6px 8px;font-size:12px;font-weight:600;color:var(--navy-l);white-space:nowrap;vertical-align:top;border:1px solid var(--border);background:#f9f9f9;min-width:80px">${label}</td><td style="padding:6px 8px;border:1px solid var(--border)">${body}</td></tr>`;
+  const secHead=(title,key)=>`<tr><td colspan="2" style="padding:8px 10px;background:var(--navy);color:#fff;font-size:13px;font-weight:700">
+    ${title} <label style="margin-left:12px;font-size:12px;font-weight:400;cursor:pointer">
+    <input type="checkbox" style="cursor:pointer" ${d[key+'_skip']?'checked':''} onchange="iaSet('${key}_skip','true',this.checked,false)"> 未評估</label>
+  </td></tr>`;
+
+  const today = new Date().toISOString().slice(0,10);
+
+  return `
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn btn-teal btn-sm" onclick="saveInitialAssess('${c.id}')">💾 儲存</button>
+    <button class="btn btn-sage btn-sm" onclick="exportInitialDocx('${c.id}')">📄 匯出 Word</button>
+  </div>
+
+  <div class="card" style="padding:14px;overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+
+  <!-- 基本資料 -->
+  <tr><td colspan="2" style="padding:8px 10px;background:var(--sage-d);color:#fff;font-size:14px;font-weight:700">禾森職能治療所 個案初評報告</td></tr>
+  ${row('姓名',`<strong>${c.name}</strong>`)}
+  ${row('性別',`<strong>${c.gender==='male'?'男':c.gender==='female'?'女':'–'}</strong>`)}
+  ${row('生日 / 年齡',`<strong>${c.dob||'–'} / ${age(c.dob)}</strong>`)}
+  ${row('診斷',`<strong>${c.diagOther||c.diagnosis||'–'}</strong>`)}
+  ${row('治療期間',`<input class="fi" style="font-size:13px;padding:5px 8px" value="${d.period||today}" onchange="iaSetText('period',this.value)">`)}
+  ${row('家長主訴',txt('chiefComplaint','請填寫家長主要擔心的問題…',3))}
+
+  <!-- 粗大動作 -->
+  ${secHead('粗大動作','gross')}
+  ${row('肌肉張力',chk('muscleTone','正常','正常')+chk('muscleTone','偏低','肌肉張力偏低')+chk('muscleTone','偏高','肌肉張力偏高'))}
+  ${row('肌耐力',chk('muscleEndurance','正常','正常')+chk('muscleEndurance','不足','不足'))}
+  ${row('基礎動作發展',['翻身','坐','站','走'].map(v=>chk('basicMotor',v,v)).join('')+'<br>跑 速度：'+chk('runSpeed','可','可')+chk('runSpeed','較慢','較慢')+'<br>協調性：'+chk('coordination','可','可')+chk('coordination','較不足','較不足'))}
+  ${row('姿勢穩定',chk('postureStability','正常','正常')+chk('postureStability','不足','不足'))}
+  ${row('動作計畫',chk('motorPlanning','正常','正常')+chk('motorPlanning','不足','不足'))}
+  ${row('上下樓梯',`上樓梯：${chk('stairsUp','兩步一階','兩步一階')}${chk('stairsUp','一步一階','一步一階')}<br>下樓梯：${chk('stairsDown','兩步一階','兩步一階')}${chk('stairsDown','一步一階','一步一階')}`)}
+  ${row('位移動作',chk('locomotion','可雙腳跳','可雙腳跳')+chk('locomotion','可單腳跳','可單腳跳')+chk('locomotion','可走直線','可走直線')+chk('locomotion','可倒退走直線','可倒退走直線'))}
+  ${row('物體操作',chk('objectManip','丟球','丟球')+chk('objectManip','接球','接球')+chk('objectManip','踢球','踢球'))}
+  ${row('行為觀察',chk('grossBehavior','正常','正常')+chk('grossBehavior','邊緣','邊緣')+chk('grossBehavior','遲緩','遲緩')+'<br>行為表現：'+txt('grossBehaviorNote','描述行為表現…',1))}
+
+  <!-- 精細動作 -->
+  ${secHead('精細動作','fine')}
+  ${row('抓握能力',chk('grasping','正常','正常')+chk('grasping','不佳','不佳'))}
+  ${row('視覺動作整合',chk('vmi','正常','正常')+chk('vmi','不佳','不佳'))}
+  ${row('物品操作',chk('objectOp','正常','正常')+chk('objectOp','不佳','不佳'))}
+  ${row('雙側協調',chk('bilateral','正常','正常')+chk('bilateral','不佳','不佳'))}
+  ${row('書寫表現',`慣用手：${chk('dominantHand','右手','右手')}${chk('dominantHand','左手','左手')}${chk('dominantHand','尚未建立','尚未建立')}<br>握筆姿勢：${['全掌抓握','旋前抓握','靜態三指抓握','靜態四指抓握','動態三指抓握','動態四指抓握'].map(v=>chk('pencilGrip',v,v)).join('')}`)}
+  ${row('形狀仿畫',['直線','圓形','十字','正方形','三角形'].map(v=>chk('shapes',v,v)).join(''))}
+  ${row('行為觀察',chk('fineBehavior','正常','正常')+chk('fineBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('fineBehaviorNote','描述行為表現…',1))}
+
+  <!-- 視知覺 -->
+  ${secHead('視知覺','visual')}
+  ${['視覺搜尋','視覺區辨','視覺對應','視覺空間','視覺記憶'].map(item=>{
+    const key='vp_'+item;
+    return row(item, chk(key,'正常','正常')+chk(key,'不佳','不佳'));
+  }).join('')}
+  ${row('行為觀察',chk('visualBehavior','正常','正常')+chk('visualBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('visualBehaviorNote','描述行為表現…',1))}
+
+  <!-- 感覺統合 -->
+  ${secHead('感覺統合','sensory')}
+  ${row('觸覺',chk('tactile','正常','正常')+chk('tactile','反應不足','反應不足')+chk('tactile','反應過度','反應過度'))}
+  ${row('視覺',chk('visualSensory','正常','正常')+chk('visualSensory','反應不足','反應不足')+chk('visualSensory','反應過度','反應過度')+'<br>視力：'+['近視','遠視','弱視','斜視','散光','矯正中'].map(v=>chk('vision',v,v)).join(''))}
+  ${row('聽覺',chk('auditory','正常','正常')+chk('auditory','反應不足','反應不足')+chk('auditory','反應過度','反應過度')+'<br>'+chk('hearing','配戴助聽器','配戴助聽器'))}
+  ${row('本體覺',chk('proprioception','正常','正常')+chk('proprioception','反應不足','反應不足')+chk('proprioception','反應過度','反應過度')+'<br>'+['經常撞到','經常跌倒','經常與人觸碰','動作笨拙'].map(v=>chk('proprioceptionNote',v,v)).join(''))}
+  ${row('前庭覺',chk('vestibular','正常','正常')+chk('vestibular','反應不足','反應不足')+chk('vestibular','反應過度','反應過度')+'<br>'+chk('vestibularNote','尋求刺激','尋求刺激')+chk('vestibularNote','害怕高度變化','害怕高度變化'))}
+  ${row('行為觀察',chk('sensoryBehavior','正常','正常')+chk('sensoryBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('sensoryBehaviorNote','描述行為表現…',1))}
+
+  <!-- 認知功能 -->
+  ${secHead('認知功能','cognitive')}
+  ${row('注意力',`警醒度：${chk('arousal','正常','正常')}${chk('arousal','常態過高','常態過高')}${chk('arousal','有時過高','有時過高')}${chk('arousal','常態過低','常態過低')}${chk('arousal','有時過低','有時過低')}<br>`+
+    ['集中性','選擇性','分散性','交替性'].map(t=>t+'注意力：'+chk('attention_'+t,'正常','正常')+chk('attention_'+t,'不佳','不佳')).join('<br>'))}
+  ${row('指令理解',chk('instruction','能理解多步驟單步驟指令','能理解多步驟單步驟指令')+'<br>'+chk('instruction','能理解單步驟指令','能理解單步驟指令')+'<br>'+chk('instruction','不能理解指令','不能理解指令'))}
+  ${row('模仿能力',['能模仿','能觀察但無法自主模仿，引導下可完成','能觀察但無法自主模仿，引導下仍無法完成','尚不能模仿'].map(v=>chk('imitation',v,v)+'<br>').join(''))}
+  ${row('物品命名',chk('naming','能命名','能命名')+chk('naming','能理解物品用途','能理解物品用途'))}
+  ${row('問題解決',['能自主產生問題解決策略','半數以上時間可自主產生策略','需要大人引導後可產生策略','大多依賴大人給予解決方法'].map(v=>chk('problemSolving',v,v)+'<br>').join(''))}
+  ${row('行為觀察',chk('cognitiveBehavior','正常','正常')+chk('cognitiveBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('cognitiveBehaviorNote','描述行為表現…',1))}
+
+  <!-- 社會情緒 -->
+  ${secHead('社會情緒功能','social')}
+  ${row('衝動控制',['大多情境能夠抑制衝動（90%以上）','部分情境能夠抑制衝動（50%以上）','少數情境能夠抑制衝動（25%以下）','大多無法抑制衝動'].map(v=>chk('impulse',v,v)+'<br>').join('')+'容易挫折的情境：'+txt('impulseNote','描述情境…',1))}
+  ${row('眼神注視',['大多數時間能夠適當的眼神注視','偶爾沒有在適當的時機予以眼神注視','僅喚名與有需求時有眼神注視','極少數時間能夠適當的眼神注視'].map(v=>chk('eyeContact',v,v)+'<br>').join(''))}
+  ${row('挫折忍受度',['遇到挫折能夠適度的調適並繼續','遇到挫折經他人引導後能夠適度的調適並繼續','遇到挫折引導仍不能夠適度的調適並繼續'].map(v=>chk('frustration',v,v)+'<br>').join(''))}
+  ${row('主動求助',['遇到困難時能在適當的時機下主動求助','能夠適切表達問題與需求，尚無法完整描述問題與需求','遇到困難時經提醒能在適當的時機下主動求助','遇到困難時無法在適當的時機下主動求助'].map(v=>chk('helpSeeking',v,v)+'<br>').join(''))}
+  ${row('互動動機',chk('interactionMotivation','大多時候有主動的互動動機','大多時候有主動的互動動機')+'<br>'+chk('interactionMotivation','僅被動回應他人互動','僅被動回應他人互動')+'<br>'+chk('interactionMotivation','鮮少觀察到有互動動機','鮮少觀察到有互動動機'))}
+  ${row('互動關係',chk('interaction','能主動建立互動關係','能主動建立互動關係')+'<br>'+chk('interaction','協助下能與他人建立互動關係','協助下能與他人建立互動關係')+'<br>'+chk('interaction','大多無法建立持續互動關係','大多無法建立持續互動關係'))}
+  ${row('行為觀察',chk('socialBehavior','正常','正常')+chk('socialBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('socialBehaviorNote','描述行為表現…',1))}
+
+  <!-- 遊戲型態 -->
+  ${secHead('遊戲型態','play')}
+  ${row('目前遊戲階層',['單獨遊戲','平行遊戲','聯合遊戲','合作遊戲'].map(v=>chk('playLevel',v,v)+'<br>').join(''))}
+  ${row('遊戲能力',['扮演遊戲','建構遊戲','規則性遊戲'].map(v=>chk('playAbility',v,v)+'<br>').join(''))}
+  ${row('行為觀察',chk('playBehavior','正常','正常')+chk('playBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('playBehaviorNote','描述行為表現…',1))}
+
+  <!-- 生活自理 -->
+  ${secHead('生活自理','adl')}
+  ${row('進食',chk('eating','使用湯匙吃東西（1.5-2歲）','使用湯匙吃東西（1.5-2歲）'))}
+  ${row('穿脫衣',chk('dressing','可自行穿上衣（3.5歲）','可自行穿上衣（3.5歲）'))}
+  ${row('盥洗 - 刷牙',chk('brushTeeth','可自行刷牙（4歲）','可自行刷牙（4歲）'))}
+  ${row('盥洗 - 洗臉/澡',chk('washing','少許協助與監督下，可自己洗臉、洗澡及擦乾（5-6歲）','少許協助與監督下，可自己洗臉、洗澡及擦乾（5-6歲）'))}
+  ${row('如廁',chk('toilet','可自行完成所有如廁步驟（包含穿脫褲子、擦拭、沖水及洗手）','可自行完成所有如廁步驟'))}
+  ${row('生活作息',['規律作息：在提醒下，自己收玩具、去刷牙，然後上床睡覺（4-4.5歲）','管理自己的事物：能收拾好個人的物品，如文具、玩具等到固定的位置（4-4.5歲）','主動協助家庭事務：協助簡單的家事，如擺碗筷、擦桌子（4.5-5歲）'].map(v=>chk('dailyRoutine',v,v)+'<br>').join(''))}
+  ${row('行為觀察',chk('adlBehavior','正常','正常')+chk('adlBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('adlBehaviorNote','描述行為表現…',1))}
+
+  <!-- 評估結論 -->
+  <tr><td colspan="2" style="padding:8px 10px;background:var(--navy);color:#fff;font-size:13px;font-weight:700">評估結論</td></tr>
+  ${row('評估結論',txt('conclusion','請填寫評估總結…',4))}
+  ${row('短期目標',txt('shortTermGoal','請填寫短期目標…',3))}
+  ${row('長期目標',txt('longTermGoal','請填寫長期目標…',3))}
+  ${row('療育安排及建議',txt('recommendation','請填寫療育建議（含返家活動）…',3))}
+  ${row('建議排課頻率',`一週 <input class="fi" style="width:60px;padding:4px 8px;font-size:13px;display:inline-block" value="${d.frequency||''}" onchange="iaSetText('frequency',this.value)"> 次`)}
+  ${row('建議上課方式',chk('classType','個別課','個別課')+chk('classType','團體課','團體課')+chk('classType','轉介語言治療','轉介語言治療'))}
+  ${row('職能治療師',`<input class="fi" style="font-size:13px;padding:5px 8px" value="${d.therapistName||''}" onchange="iaSetText('therapistName',this.value)" placeholder="治療師姓名">`)}
+
+  </table>
+  </div>`;
+}
+
+// Live data update functions
+window._iaCache = {};
+function iaSet(key, val, checked, isArray){
+  const c = currentCase;
+  if(!c) return;
+  if(!window._iaCache[c.id]) window._iaCache[c.id] = {};
+  const cache = window._iaCache[c.id];
+  if(isArray){
+    if(!Array.isArray(cache[key])) cache[key] = [];
+    if(checked){ if(!cache[key].includes(val)) cache[key].push(val); }
+    else { cache[key] = cache[key].filter(v=>v!==val); }
+  } else {
+    cache[key] = checked ? val : '';
+  }
+}
+function iaSetText(key, val){
+  const c = currentCase;
+  if(!c) return;
+  if(!window._iaCache[c.id]) window._iaCache[c.id] = {};
+  window._iaCache[c.id][key] = val;
+}
+
+async function saveInitialAssess(caseId){
+  const cache = window._iaCache[caseId] || {};
+  // Merge with existing
+  const existing = DB.initialAssessments.find(x=>x.caseId===caseId);
+  let merged = {};
+  if(existing){ try{ merged = JSON.parse(existing.data||'{}'); }catch(e){} }
+  Object.assign(merged, cache);
+  if(existing){ existing.data = JSON.stringify(merged); }
+  else { DB.initialAssessments.push({id:newId(), caseId, data:JSON.stringify(merged)}); }
+  window._iaCache[caseId] = merged;
+  saveCache();
+  toast('💾 儲存中…');
+  await saveAll('initial')();
+  toast('✅ 初評報告已儲存');
+}
+
+async function exportInitialDocx(caseId){
+  toast('📄 準備匯出…');
+  const c = DB.cases.find(x=>x.id===caseId);
+  if(!c){ toast('❌ 找不到個案'); return; }
+  const ia = DB.initialAssessments.find(x=>x.caseId===caseId);
+  let d = {};
+  // Merge cache + saved
+  try{ if(ia) d = JSON.parse(ia.data||'{}'); }catch(e){}
+  const cache = window._iaCache[caseId]||{};
+  Object.assign(d, cache);
+
+  // Build docx content as HTML then trigger print-to-PDF via new window
+  const html = buildInitialReportHTML(c, d);
+  const w = window.open('','_blank');
+  if(!w){ toast('❌ 請允許彈出視窗'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{ w.print(); }, 800);
+  toast('✅ 請選擇「儲存為PDF」或列印');
+}
+
+function buildInitialReportHTML(c, d){
+  const getVal = key => {
+    const v = d[key];
+    if(Array.isArray(v)) return v.join('、');
+    return v||'';
+  };
+  const chkDisplay = (key, val) => {
+    const v = d[key];
+    const checked = v===val || (Array.isArray(v)&&v.includes(val));
+    return `<span style="margin-right:10px">${checked?'☑':'☐'} ${val}</span>`;
+  };
+
+  return `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
+  <title>初評報告 - ${c.name}</title>
+  <style>
+    body{font-family:'微軟正黑體','Microsoft JhengHei',Arial,sans-serif;font-size:11pt;margin:20mm;color:#000}
+    h1{text-align:center;font-size:14pt;margin-bottom:4px}
+    h2{text-align:center;font-size:12pt;margin-top:0}
+    table{width:100%;border-collapse:collapse;margin-bottom:12px}
+    td,th{border:1px solid #333;padding:4px 6px;vertical-align:top;font-size:10pt}
+    .sec-head{background:#2C3E50;color:white;font-weight:bold;padding:5px 8px;font-size:11pt}
+    .label{background:#f0f0f0;font-weight:600;white-space:nowrap;width:90px;font-size:9.5pt}
+    .note-field{color:#555;font-style:italic}
+    @media print{body{margin:10mm} @page{size:A4;margin:15mm}}
+  </style></head><body>
+  <h1>禾森職能治療所</h1>
+  <h2>個案初評報告</h2>
+  <table>
+    <tr><td class="label">姓名</td><td>${c.name}</td><td class="label">性別</td><td>${c.gender==='male'?'男':c.gender==='female'?'女':'–'}</td></tr>
+    <tr><td class="label">生日</td><td>${c.dob||'–'}</td><td class="label">年齡</td><td>${age(c.dob)}</td></tr>
+    <tr><td class="label">診斷</td><td colspan="3">${c.diagOther||c.diagnosis||'–'}</td></tr>
+    <tr><td class="label">治療期間</td><td colspan="3">${d.period||''}</td></tr>
+    <tr><td class="label">家長主訴</td><td colspan="3">${(d.chiefComplaint||'').replace(/\n/g,'<br>')}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">粗大動作</td></tr>
+    <tr><td class="label">肌肉張力</td><td>${chkDisplay('muscleTone','正常')}${chkDisplay('muscleTone','偏低')}${chkDisplay('muscleTone','偏高')}</td></tr>
+    <tr><td class="label">肌耐力</td><td>${chkDisplay('muscleEndurance','正常')}${chkDisplay('muscleEndurance','不足')}</td></tr>
+    <tr><td class="label">基礎動作</td><td>${['翻身','坐','站','走'].map(v=>chkDisplay('basicMotor',v)).join('')}<br>跑 速度：${chkDisplay('runSpeed','可')}${chkDisplay('runSpeed','較慢')}<br>協調性：${chkDisplay('coordination','可')}${chkDisplay('coordination','較不足')}</td></tr>
+    <tr><td class="label">姿勢穩定</td><td>${chkDisplay('postureStability','正常')}${chkDisplay('postureStability','不足')}</td></tr>
+    <tr><td class="label">動作計畫</td><td>${chkDisplay('motorPlanning','正常')}${chkDisplay('motorPlanning','不足')}</td></tr>
+    <tr><td class="label">上下樓梯</td><td>上：${chkDisplay('stairsUp','兩步一階')}${chkDisplay('stairsUp','一步一階')}<br>下：${chkDisplay('stairsDown','兩步一階')}${chkDisplay('stairsDown','一步一階')}</td></tr>
+    <tr><td class="label">位移動作</td><td>${['可雙腳跳','可單腳跳','可走直線','可倒退走直線'].map(v=>chkDisplay('locomotion',v)).join('')}</td></tr>
+    <tr><td class="label">物體操作</td><td>${['丟球','接球','踢球'].map(v=>chkDisplay('objectManip',v)).join('')}</td></tr>
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('grossBehavior','正常')}${chkDisplay('grossBehavior','邊緣')}${chkDisplay('grossBehavior','遲緩')}<br>${d.grossBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">精細動作</td></tr>
+    <tr><td class="label">抓握能力</td><td>${chkDisplay('grasping','正常')}${chkDisplay('grasping','不佳')}</td></tr>
+    <tr><td class="label">視覺動作整合</td><td>${chkDisplay('vmi','正常')}${chkDisplay('vmi','不佳')}</td></tr>
+    <tr><td class="label">物品操作</td><td>${chkDisplay('objectOp','正常')}${chkDisplay('objectOp','不佳')}</td></tr>
+    <tr><td class="label">雙側協調</td><td>${chkDisplay('bilateral','正常')}${chkDisplay('bilateral','不佳')}</td></tr>
+    <tr><td class="label">書寫表現</td><td>慣用手：${['右手','左手','尚未建立'].map(v=>chkDisplay('dominantHand',v)).join('')}<br>握筆姿勢：${['全掌抓握','旋前抓握','靜態三指抓握','靜態四指抓握','動態三指抓握','動態四指抓握'].map(v=>chkDisplay('pencilGrip',v)).join('')}</td></tr>
+    <tr><td class="label">形狀仿畫</td><td>${['直線','圓形','十字','正方形','三角形'].map(v=>chkDisplay('shapes',v)).join('')}</td></tr>
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('fineBehavior','正常')}${chkDisplay('fineBehavior','需要訓練')}<br>${d.fineBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">視知覺</td></tr>
+    ${['視覺搜尋','視覺區辨','視覺對應','視覺空間','視覺記憶'].map(item=>`<tr><td class="label">${item}</td><td>${chkDisplay('vp_'+item,'正常')}${chkDisplay('vp_'+item,'不佳')}</td></tr>`).join('')}
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('visualBehavior','正常')}${chkDisplay('visualBehavior','需要訓練')}<br>${d.visualBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">感覺統合</td></tr>
+    <tr><td class="label">觸覺</td><td>${chkDisplay('tactile','正常')}${chkDisplay('tactile','反應不足')}${chkDisplay('tactile','反應過度')}</td></tr>
+    <tr><td class="label">視覺</td><td>${chkDisplay('visualSensory','正常')}${chkDisplay('visualSensory','反應不足')}${chkDisplay('visualSensory','反應過度')}<br>視力：${['近視','遠視','弱視','斜視','散光','矯正中'].map(v=>chkDisplay('vision',v)).join('')}</td></tr>
+    <tr><td class="label">聽覺</td><td>${chkDisplay('auditory','正常')}${chkDisplay('auditory','反應不足')}${chkDisplay('auditory','反應過度')}<br>${chkDisplay('hearing','配戴助聽器')}</td></tr>
+    <tr><td class="label">本體覺</td><td>${chkDisplay('proprioception','正常')}${chkDisplay('proprioception','反應不足')}${chkDisplay('proprioception','反應過度')}<br>${['經常撞到','經常跌倒','經常與人觸碰','動作笨拙'].map(v=>chkDisplay('proprioceptionNote',v)).join('')}</td></tr>
+    <tr><td class="label">前庭覺</td><td>${chkDisplay('vestibular','正常')}${chkDisplay('vestibular','反應不足')}${chkDisplay('vestibular','反應過度')}<br>${chkDisplay('vestibularNote','尋求刺激')}${chkDisplay('vestibularNote','害怕高度變化')}</td></tr>
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('sensoryBehavior','正常')}${chkDisplay('sensoryBehavior','需要訓練')}<br>${d.sensoryBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">認知功能</td></tr>
+    <tr><td class="label">注意力</td><td>警醒度：${['正常','常態過高','有時過高','常態過低','有時過低'].map(v=>chkDisplay('arousal',v)).join('')}<br>${['集中性','選擇性','分散性','交替性'].map(t=>t+'注意力：'+chkDisplay('attention_'+t,'正常')+chkDisplay('attention_'+t,'不佳')+'<br>').join('')}</td></tr>
+    <tr><td class="label">指令理解</td><td>${['能理解多步驟單步驟指令','能理解單步驟指令','不能理解指令'].map(v=>chkDisplay('instruction',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">模仿能力</td><td>${['能模仿','能觀察但無法自主模仿，引導下可完成','能觀察但無法自主模仿，引導下仍無法完成','尚不能模仿'].map(v=>chkDisplay('imitation',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">物品命名</td><td>${chkDisplay('naming','能命名')}${chkDisplay('naming','能理解物品用途')}</td></tr>
+    <tr><td class="label">問題解決</td><td>${['能自主產生問題解決策略','半數以上時間可自主產生策略','需要大人引導後可產生策略','大多依賴大人給予解決方法'].map(v=>chkDisplay('problemSolving',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('cognitiveBehavior','正常')}${chkDisplay('cognitiveBehavior','需要訓練')}<br>${d.cognitiveBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">社會情緒功能</td></tr>
+    <tr><td class="label">衝動控制</td><td>${['大多情境能夠抑制衝動（90%以上）','部分情境能夠抑制衝動（50%以上）','少數情境能夠抑制衝動（25%以下）','大多無法抑制衝動'].map(v=>chkDisplay('impulse',v)+'<br>').join('')}容易挫折的情境：${d.impulseNote||''}</td></tr>
+    <tr><td class="label">眼神注視</td><td>${['大多數時間能夠適當的眼神注視','偶爾沒有在適當的時機予以眼神注視','僅喚名與有需求時有眼神注視','極少數時間能夠適當的眼神注視'].map(v=>chkDisplay('eyeContact',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">挫折忍受度</td><td>${['遇到挫折能夠適度的調適並繼續','遇到挫折經他人引導後能夠適度的調適並繼續','遇到挫折引導仍不能夠適度的調適並繼續'].map(v=>chkDisplay('frustration',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">互動動機</td><td>${['大多時候有主動的互動動機','僅被動回應他人互動','鮮少觀察到有互動動機'].map(v=>chkDisplay('interactionMotivation',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">互動關係</td><td>${['能主動建立互動關係','協助下能與他人建立互動關係','大多無法建立持續互動關係'].map(v=>chkDisplay('interaction',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('socialBehavior','正常')}${chkDisplay('socialBehavior','需要訓練')}<br>${d.socialBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">遊戲型態</td></tr>
+    <tr><td class="label">遊戲階層</td><td>${['單獨遊戲','平行遊戲','聯合遊戲','合作遊戲'].map(v=>chkDisplay('playLevel',v)).join('')}</td></tr>
+    <tr><td class="label">遊戲能力</td><td>${['扮演遊戲','建構遊戲','規則性遊戲'].map(v=>chkDisplay('playAbility',v)).join('')}</td></tr>
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('playBehavior','正常')}${chkDisplay('playBehavior','需要訓練')}<br>${d.playBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">生活自理</td></tr>
+    <tr><td class="label">進食</td><td>${chkDisplay('eating','使用湯匙吃東西（1.5-2歲）')}</td></tr>
+    <tr><td class="label">穿脫衣</td><td>${chkDisplay('dressing','可自行穿上衣（3.5歲）')}</td></tr>
+    <tr><td class="label">盥洗</td><td>${chkDisplay('brushTeeth','可自行刷牙（4歲）')}<br>${chkDisplay('washing','少許協助與監督下，可自己洗臉、洗澡及擦乾（5-6歲）')}</td></tr>
+    <tr><td class="label">如廁</td><td>${chkDisplay('toilet','可自行完成所有如廁步驟')}</td></tr>
+    <tr><td class="label">生活作息</td><td>${['規律作息：在提醒下，自己收玩具、去刷牙，然後上床睡覺（4-4.5歲）','管理自己的事物：能收拾好個人的物品，如文具、玩具等到固定的位置（4-4.5歲）','主動協助家庭事務：協助簡單的家事，如擺碗筷、擦桌子（4.5-5歲）'].map(v=>chkDisplay('dailyRoutine',v)+'<br>').join('')}</td></tr>
+    <tr><td class="label">行為觀察</td><td>${chkDisplay('adlBehavior','正常')}${chkDisplay('adlBehavior','需要訓練')}<br>${d.adlBehaviorNote||''}</td></tr>
+  </table>
+
+  <table>
+    <tr><td colspan="2" class="sec-head">評估結論</td></tr>
+    <tr><td class="label">評估結論</td><td>${(d.conclusion||'').replace(/\n/g,'<br>')}</td></tr>
+    <tr><td class="label">短期目標</td><td>${(d.shortTermGoal||'').replace(/\n/g,'<br>')}</td></tr>
+    <tr><td class="label">長期目標</td><td>${(d.longTermGoal||'').replace(/\n/g,'<br>')}</td></tr>
+    <tr><td class="label">療育安排及建議</td><td>${(d.recommendation||'').replace(/\n/g,'<br>')}</td></tr>
+    <tr><td class="label">建議排課頻率</td><td>一週 ${d.frequency||'__'} 次</td></tr>
+    <tr><td class="label">建議上課方式</td><td>${['個別課','團體課','轉介語言治療'].map(v=>chkDisplay('classType',v)).join('')}</td></tr>
+    <tr><td class="label">職能治療師</td><td>${d.therapistName||''}</td></tr>
+  </table>
+  </body></html>`;
+}
+
 
 // ══════════════════════════════════════════════════
 // BOOT
