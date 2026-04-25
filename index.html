@@ -8,8 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="OT管理">
 <meta name="theme-color" content="#2C3E50">
 <title>兒童職能治療管理 v2</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* System fonts - no external loading needed */
+</style>
 <script>
 // Web Crypto JWT - works natively on iOS Safari without external libraries
 async function signJWT(header, payload, pemKey) {
@@ -48,7 +49,7 @@ async function signJWT(header, payload, pemKey) {
   --lav:#9B8EC4;--lav-l:#EAE7F5;--gold:#D4A843;--gold-l:#FBF0D3;
   --red:#E07070;--red-l:#FDECEC;--border:#E8E3D9;--muted:#8A9099;
   --teal:#5BA4A4;--teal-l:#DFF0F0;
-  --fh:'Playfair Display',Georgia,serif;--fb:'DM Sans','Helvetica Neue',sans-serif;
+  --fh:Georgia,'Times New Roman',serif;--fb:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
   --bot:64px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -317,7 +318,7 @@ const MILESTONES = {
     cognitive:['邏輯推理','學科概念建立','注意力維持20分鐘以上','工作記憶發展'],
     social:['同儕關係建立','合作解決問題','情緒調節','自我概念發展'],
     selfcare:['完全獨立自理','整理個人物品','時間管理萌芽','獨立洗澡']}
-};};
+};
 
 // ══════════════════════════════════════════════════
 // STATE
@@ -353,26 +354,30 @@ async function sheetAppend(range,values){const t=await getAccessToken();await fe
 async function sheetClear(range){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,{method:'POST',headers:{Authorization:`Bearer ${t}`}});}
 
 async function initSheets(){
-  const sheets=[
-    {name:'個案',h:['id','name','dob','gender','diagnosis','diagOther','guardian','phone','sessions','status','color','note']},
-    {name:'預約',h:['id','caseId','date','time','duration','fee','note','status','type','groupSize','timeSlot']},
-    {name:'目標',h:['id','caseId','area','goal','target','progress','status']},
-    {name:'紀錄',h:['id','caseId','date','attendance','soapS','soapO','soapA','soapP','activities','parentNote','therapist']},
-    {name:'評估',h:['id','caseId','tool','date','scores','percentiles','subtestResults','notes','recommendations']},
-    {name:'里程碑',h:['id','caseId','date','ageGroup','gross','fine','cognitive','social','selfcare','notes']},
-    {name:'設定',h:['key','value']},
-  ];
-  for(const s of sheets){const rows=await sheetGet(`${s.name}!A1:Z1`);if(!rows.length)await sheetSet(`${s.name}!A1`,[s.h]);}
+  // Just verify connection works - sheets should already be created manually
+  const t=await getAccessToken();
+  const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
+  const data=await res.json();
+  if(!data.sheets) throw new Error('Cannot access spreadsheet. Check permissions.');
+  const existingSheets=data.sheets.map(s=>s.properties.title);
+  const required=['個案','預約','目標','紀錄','評估','里程碑','設定'];
+  const missing=required.filter(s=>!existingSheets.includes(s));
+  if(missing.length>0){
+    throw new Error(`請在 Google Sheet 中建立以下工作表：${missing.join('、')}`);
+  }
 }
 
 // ══════════════════════════════════════════════════
 // LOAD / SAVE
 // ══════════════════════════════════════════════════
 async function loadAll(){
-  const [cases,appts,goals,notes,assessments,milestones,settings]=await Promise.all([
-    sheetGet('個案!A2:J999'),sheetGet('預約!A2:K999'),sheetGet('目標!A2:G999'),
-    sheetGet('紀錄!A2:K999'),sheetGet('評估!A2:H999'),sheetGet('里程碑!A2:J999'),sheetGet('設定!A2:B99')
-  ]);
+  const t=await getAccessToken();
+  const ranges=['個案!A2:L999','預約!A2:K999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99'];
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?`+ranges.map(r=>'ranges='+encodeURIComponent(r)).join('&');
+  const res=await fetch(url,{headers:{Authorization:`Bearer ${t}`}});
+  const json=await res.json();
+  if(!json.valueRanges) throw new Error('batchGet failed: '+(json.error?.message||JSON.stringify(json)));
+  const [cases,appts,goals,notes,assessments,milestones,settings]=json.valueRanges.map(r=>r.values||[]);
   DB.cases=cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',gender:r[3]||'',diagnosis:r[4]||'',diagOther:r[5]||'',guardian:r[6]||'',phone:r[7]||'',sessions:+r[8]||0,status:r[9]||'active',color:r[10]||COLORS[0],note:r[11]||''}));
   DB.appts=appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'}));
   DB.goals=goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'}));
@@ -392,7 +397,7 @@ async function loadAll(){
 }
 
 const saveAll = (key) => ({
-  cases:  async()=>{await sheetClear('個案!A2:L999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));},
+  cases:  async()=>{await sheetClear('個案!A2:L999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));saveCache();},
   appts:  async()=>{await sheetClear('預約!A2:K999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot]));},
   goals:  async()=>{await sheetClear('目標!A2:G999');if(DB.goals.length)await sheetAppend('目標!A2',DB.goals.map(g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status]));},
   notes:  async()=>{await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));},
@@ -415,7 +420,7 @@ function firstDay(y,m){return new Date(y,m,1).getDay();}
 async function syncAll(){
   const btn=document.getElementById('syncBtn');
   btn.style.animation='spin .8s linear infinite';
-  try{await loadAll();render();toast('✅ 已同步最新資料');}
+  try{await loadAll();saveCache();render();toast('✅ 已同步最新資料');}
   catch(e){toast('❌ 同步失敗，請檢查網路');}
   finally{btn.style.animation='';btn.textContent='⟳ 同步';}
 }
@@ -1539,18 +1544,51 @@ async function deleteMilestone(id){if(!confirm('確定刪除？'))return;DB.mile
 // ══════════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════════
-async function boot(){
+// ── Cache helpers ──
+const CACHE_KEY='ot_db_cache';
+const CACHE_TTL=10*60*1000; // 10 minutes
+
+function saveCache(){
   try{
-    document.querySelector('#loading p').textContent='驗證 Google 連線中…';
-    const token = await getAccessToken();
+    localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),db:DB}));
+  }catch(e){console.warn('Cache save failed',e);}
+}
+
+function loadCache(){
+  try{
+    const raw=localStorage.getItem(CACHE_KEY);
+    if(!raw)return false;
+    const {ts,db}=JSON.parse(raw);
+    if(Date.now()-ts>CACHE_TTL)return false;
+    DB=db;
+    return true;
+  }catch(e){return false;}
+}
+
+async function boot(){
+  // Step 1: Show cached data instantly if available
+  const hasCached=loadCache();
+  if(hasCached){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='flex';
+    render();
+    // Sync in background silently
+    syncInBackground();
+    return;
+  }
+  // Step 2: No cache - load fresh
+  document.querySelector('#loading p').textContent='連線中…';
+  try{
+    await getAccessToken();
     document.querySelector('#loading p').textContent='讀取資料中…';
     await initSheets();
     await loadAll();
+    saveCache();
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.display='flex';
     render();
   }catch(e){
-    const msg = e?.message||String(e);
+    const msg=e?.message||String(e);
     document.getElementById('loading').innerHTML=`
     <div style="text-align:center;padding:30px">
       <div style="font-size:36px;margin-bottom:12px">❌</div>
@@ -1559,6 +1597,17 @@ async function boot(){
       <button onclick="location.reload()" style="background:var(--sage-d);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:14px;cursor:pointer">重新載入</button>
     </div>`;
     console.error(e);
+  }
+}
+
+async function syncInBackground(){
+  try{
+    await getAccessToken();
+    await loadAll();
+    saveCache();
+    render(); // refresh UI with latest data
+  }catch(e){
+    console.warn('Background sync failed',e);
   }
 }
 boot();
