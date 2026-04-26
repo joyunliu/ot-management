@@ -169,7 +169,16 @@ body{font-family:var(--fb);background:var(--bg);color:var(--navy);height:100dvh;
 </style>
 </head>
 <body>
-<div id="loading"><div class="sp"></div><p style="font-size:14px;color:var(--muted)">載入中…</p></div>
+<div id="pwd-screen" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:16px">
+  <div style="font-family:Georgia,serif;font-size:24px;color:var(--navy);font-weight:700">🌿 OT 個案管理</div>
+  <div style="background:var(--card);border-radius:16px;padding:28px 32px;border:1px solid var(--border);width:280px;text-align:center">
+    <div style="font-size:14px;color:var(--muted);margin-bottom:16px">請輸入密碼</div>
+    <input id="pwd-input" type="password" placeholder="••••" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);font-size:20px;text-align:center;letter-spacing:8px;outline:none;font-family:inherit;margin-bottom:12px" onkeydown="if(event.key==='Enter')checkPwd()">
+    <div id="pwd-error" style="color:var(--red);font-size:12px;margin-bottom:8px;display:none">密碼錯誤，請再試一次</div>
+    <button onclick="checkPwd()" style="width:100%;padding:12px;background:var(--sage-d);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">進入</button>
+  </div>
+</div>
+<div id="loading" style="display:none"><div class="sp"></div><p style="font-size:14px;color:var(--muted)">載入中…</p></div>
 <div id="toast"></div>
 <div id="app" style="display:none">
   <div id="topbar">
@@ -387,6 +396,7 @@ async function loadAll(){
   DB.initialAssessments=(initialAssessments||[]).map(r=>({id:r[0],caseId:r[1],data:r[2]||'{}'}));
   DB.settings={};settings.forEach(r=>{if(r[0])DB.settings[r[0]]=r[1]||'';});
   // default fee settings
+  if(!DB.settings.commissionRate)      DB.settings.commissionRate='60';
   if(!DB.settings.fee_assess_init_day)    DB.settings.fee_assess_init_day='3000';
   if(!DB.settings.fee_assess_init_ew)     DB.settings.fee_assess_init_ew='3500';
   if(!DB.settings.fee_assess_follow_day) DB.settings.fee_assess_follow_day='2000';
@@ -409,6 +419,15 @@ const saveAll = (key) => ({
 })[key];
 
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function navToCase(caseId){
+  currentCase=DB.cases.find(c=>c.id===caseId);
+  if(!currentCase)return;
+  currentCaseTab='info';
+  currentNav='cases';
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('bn-cases')?.classList.add('active');
+  render();
+}
 function toggleDiagOther(){const sel=document.getElementById('cf-diag-sel')?.value;const w=document.getElementById('cf-diag-other-wrap');if(w)w.style.display=sel==='其他（自行輸入）'?'block':'none';}
 function typeLabel(type,groupSize){return type==='group'?`👥團體${groupSize}人`:type==='assess_init'?'🔬初評':type==='assess_follow'?'🔬追蹤評估':'👤個別';}
 function toast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
@@ -706,8 +725,8 @@ function renderCalendar(){
     const key=fmt(calSel),dA=aMap[key]||[];
     selDetail=`<div class="card" style="margin-top:12px">
       <div class="stitle">📋 ${calMonth+1}月${calSel}日</div>
-      ${dA.length===0?'<div style="color:var(--muted);font-size:13px">當天沒有預約</div>':dA.map(a=>`
-      <div class="card-row">
+      ${dA.length===0?'<div style="color:var(--muted);font-size:13px">當天沒有預約</div>':dA.sort((a,b)=>a.time.localeCompare(b.time)).map(a=>`
+      <div class="card-row" style="cursor:pointer" onclick="navToCase('${a.caseId}')">
         <div class="av" style="width:32px;height:32px;background:${caseColor(a.caseId)};font-size:12px">${caseName(a.caseId)[0]||'?'}</div>
         <div style="flex:1"><div style="font-weight:600;font-size:13px">${caseName(a.caseId)} · ${a.time}</div>
         <div style="font-size:11px;color:var(--muted)">${typeLabel(a.type,a.groupSize)} · ${a.note||'–'}</div></div>
@@ -771,7 +790,39 @@ function renderIncome(){
       <span style="color:var(--navy-l)">$${c.income.toLocaleString()} (${c.count}次)</span>
     </div>
     <div class="prog"><div class="prog-bar" style="width:${totalDone?(c.income/totalDone*100):0}%;background:${c.color}"></div></div>
-  </div>`).join('')}</div>`:''}`;
+  </div>`).join('')}</div>`:''}
+
+  <div class="card">
+    <div class="stitle">💵 抽成計算</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">抽成比例：<span id="commission-rate-display">${Math.round((+DB.settings.commissionRate||60))}%</span>
+      <button onclick="toggleCommissionEdit()" style="margin-left:8px;background:var(--border);border:none;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">修改</button>
+    </div>
+    <div id="commission-edit" style="display:none;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="fi" type="number" id="commission-rate-input" min="0" max="100" value="${+DB.settings.commissionRate||60}" style="width:80px;padding:6px 10px">
+        <span style="font-size:13px">%</span>
+        <button onclick="saveCommissionRate()" class="btn btn-sage btn-sm">儲存</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:var(--sage-l);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">本月已收入</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--sage-d)">$${totalDone.toLocaleString()}</div>
+      </div>
+      <div style="background:var(--gold-l);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">你的抽成（${Math.round(+DB.settings.commissionRate||60)}%）</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--gold)">$${Math.round(totalDone*(+DB.settings.commissionRate||60)/100).toLocaleString()}</div>
+      </div>
+      <div style="background:#EBF0FC;border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">預計收入</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:#5B78C9">$${totalUp.toLocaleString()}</div>
+      </div>
+      <div style="background:var(--lav-l);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">預計抽成</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--lav)">$${Math.round(totalUp*(+DB.settings.commissionRate||60)/100).toLocaleString()}</div>
+      </div>
+    </div>
+  </div>`;
 }
 
 // ══════════════════════════════════════════════════
@@ -812,6 +863,20 @@ function renderSettings(){
   </div>`;
 }
 
+function toggleCommissionEdit(){
+  const el=document.getElementById('commission-edit');
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+async function saveCommissionRate(){
+  const val=document.getElementById('commission-rate-input')?.value;
+  if(!val)return;
+  DB.settings.commissionRate=val;
+  saveCache();
+  await saveAll('settings')();
+  toggleCommissionEdit();
+  render();
+  toast('✅ 抽成比例已儲存');
+}
 async function saveSettings(){
   DB.settings.fee_assess_init_day=document.getElementById('s-ai-day').value;
   DB.settings.fee_assess_init_ew=document.getElementById('s-ai-ew').value;
@@ -1880,6 +1945,25 @@ function loadCache(){
   }catch(e){return false;}
 }
 
+function checkPwd(){
+  const input=document.getElementById('pwd-input').value;
+  const err=document.getElementById('pwd-error');
+  if(input==='1106'){
+    document.getElementById('pwd-screen').style.display='none';
+    document.getElementById('loading').style.display='flex';
+    boot();
+  } else {
+    err.style.display='block';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+// Auto-focus password input on load
+window.addEventListener('load',()=>{
+  document.getElementById('pwd-input')?.focus();
+});
+
 async function boot(){
   // Step 1: Show cached data instantly if available
   const hasCached=loadCache();
@@ -1887,7 +1971,6 @@ async function boot(){
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.display='flex';
     render();
-    // Sync in background silently
     syncInBackground();
     return;
   }
