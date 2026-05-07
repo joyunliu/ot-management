@@ -194,7 +194,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--navy);height:100dvh;
     <button class="bn" onclick="nav('settings')" id="bn-settings"><span class="ic">⚙️</span>設定</button>
   </nav>
 </div>
-
+ 
 <!-- Modals -->
 <div class="overlay" id="modal-case"><div class="sheet"><div class="handle" style="cursor:grab"></div><div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px">向下滑動關閉</div><div class="mhead" id="mc-title">新增個案</div><div class="mbody" id="mc-body"></div></div></div>
 <div class="overlay" id="modal-appt"><div class="sheet"><div class="handle" style="cursor:grab"></div><div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px">向下滑動關閉</div><div class="mhead" id="ma-title">新增預約</div><div class="mbody" id="ma-body"></div></div></div>
@@ -202,7 +202,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--navy);height:100dvh;
 <div class="overlay" id="modal-note"><div class="sheet"><div class="handle" style="cursor:grab"></div><div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px">向下滑動關閉</div><div class="mhead" id="mn-title">治療紀錄</div><div class="mbody" id="mn-body"></div></div></div>
 <div class="overlay" id="modal-assess"><div class="sheet"><div class="handle" style="cursor:grab"></div><div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px">向下滑動關閉</div><div class="mhead" id="mas-title">評估記錄</div><div class="mbody" id="mas-body"></div></div></div>
 <div class="overlay" id="modal-milestone"><div class="sheet"><div class="handle" style="cursor:grab"></div><div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px">向下滑動關閉</div><div class="mhead" id="mm-title">發展里程碑</div><div class="mbody" id="mm-body"></div></div></div>
-
+ 
 <script>
 // ══════════════════════════════════════════════════
 // CONFIG
@@ -237,14 +237,14 @@ bdavsI7i4RVlN+SsxSTkR0S71DfzEdYlDPBqCERb+XRSmguBCBPsA8cDBb3p8Es8
 nPLZXtPPLP3yG2YOEuHHMlYTgWWFg99J3g22Jh8SpjXrZSWq47Qf7ctnLl+KCoa2
 /UZy5Wi9xg8aaHupJ39xWQ==
 -----END PRIVATE KEY-----`;
-
+ 
 // ══════════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════════
 const COLORS=['#7BAF8E','#E8A87C','#9B8EC4','#D4A843','#5B78C9','#E07070','#5BA4A4','#C47A8E'];
 const MONTHS=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
 const DAYS=['日','一','二','三','四','五','六'];
-
+ 
 // Quick-input chips by category
 const CHIPS = {
   attendance: [{l:'✅ 準時到課',v:'準時到課'},{l:'⏰ 遲到',v:'遲到約'},{l:'❌ 缺課',v:'缺課（未通知）'},{l:'📞 請假',v:'家長來電請假'},{l:'🔄 補課',v:'補課'}],
@@ -254,7 +254,7 @@ const CHIPS = {
   motor: [{l:'握筆進步',v:'三指握筆姿勢較穩定'},{l:'剪刀技巧↑',v:'剪刀操作技巧進步'},{l:'平衡改善',v:'單腳站立時間延長'},{l:'協調↑',v:'雙側協調動作改善'},{l:'肌張力低',v:'核心肌張力偏低，需加強'}],
   homework: [{l:'給予回家練習',v:'回家作業：'},{l:'親子活動建議',v:'建議親子活動：'},{l:'下次目標',v:'下次治療目標：'},{l:'家長衛教',v:'已向家長說明：'}]
 };
-
+ 
 // Assessment tools config
 const ASSESS_TOOLS = {
   'PDMS-2': { name:'PDMS-2 粗大/精細動作發展量表', ageRange:'0-72個月', scores:['粗大動作(GMQ)','精細動作(FMQ)','總動作(TMQ)'], hasPercentile:true },
@@ -264,7 +264,7 @@ const ASSESS_TOOLS = {
   'DAYC-2': { name:'DAYC-2 幼兒發展評估量表', ageRange:'0-72個月', scores:['認知','溝通','社會情緒','身體發展','適應行為'], hasPercentile:true },
   'Sensory Profile': { name:'Sensory Profile 感覺特徵量表', ageRange:'3-14歲', scores:['低登錄','感覺尋求','敏感性','迴避'], hasPercentile:false },
 };
-
+ 
 // Developmental milestones by age group
 const MILESTONES = {
   '0-6m':{title:'0-6個月',
@@ -328,7 +328,7 @@ const MILESTONES = {
     social:['同儕關係建立','合作解決問題','情緒調節','自我概念發展'],
     selfcare:['完全獨立自理','整理個人物品','時間管理萌芽','獨立洗澡']}
 };
-
+ 
 // ══════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════
@@ -338,7 +338,7 @@ let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=nul
 let incomeYear=new Date().getFullYear(), incomeMonth=new Date().getMonth();
 let accessToken=null, tokenExpiry=0;
 let soapActiveTab='S';
-
+ 
 // ══════════════════════════════════════════════════
 // JWT AUTH
 // ══════════════════════════════════════════════════
@@ -353,7 +353,7 @@ async function getAccessToken(){
   if(!d.access_token)throw new Error('Token error: '+JSON.stringify(d));
   accessToken=d.access_token;tokenExpiry=Date.now()+3500*1000;return accessToken;
 }
-
+ 
 // ══════════════════════════════════════════════════
 // SHEETS API
 // ══════════════════════════════════════════════════
@@ -361,7 +361,7 @@ async function sheetGet(range){const t=await getAccessToken();const r=await fetc
 async function sheetSet(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
 async function sheetAppend(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
 async function sheetClear(range){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,{method:'POST',headers:{Authorization:`Bearer ${t}`}});}
-
+ 
 async function initSheets(){
   // Just verify connection works - sheets should already be created manually
   const t=await getAccessToken();
@@ -375,13 +375,13 @@ async function initSheets(){
     throw new Error(`請在 Google Sheet 中建立以下工作表：${missing.join('、')}`);
   }
 }
-
+ 
 // ══════════════════════════════════════════════════
 // LOAD / SAVE
 // ══════════════════════════════════════════════════
 async function loadAll(){
   const t=await getAccessToken();
-  const ranges=['個案!A2:L999','預約!A2:K999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99','初評報告!A2:C999'];
+  const ranges=['個案!A2:L999','預約!A2:M999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99','初評報告!A2:C999'];
   const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?`+ranges.map(r=>'ranges='+encodeURIComponent(r)).join('&');
   const res=await fetch(url,{headers:{Authorization:`Bearer ${t}`}});
   const json=await res.json();
@@ -406,10 +406,10 @@ async function loadAll(){
   if(!DB.settings.fee_group_day)         DB.settings.fee_group_day='900';
   if(!DB.settings.fee_group_ew)          DB.settings.fee_group_ew='1100';
 }
-
+ 
 const saveAll = (key) => ({
   cases:  async()=>{await sheetClear('個案!A2:L999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));saveCache();},
-  appts:  async()=>{await sheetClear('預約!A2:K999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot]));},
+  appts:  async()=>{await sheetClear('預約!A2:M999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot,a.recurring||'once',a.recurringId||'']));},
   goals:  async()=>{await sheetClear('目標!A2:G999');if(DB.goals.length)await sheetAppend('目標!A2',DB.goals.map(g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status]));},
   notes:  async()=>{await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));},
   assess: async()=>{await sheetClear('評估!A2:I999');if(DB.assessments.length)await sheetAppend('評估!A2',DB.assessments.map(a=>[a.id,a.caseId,a.tool,a.date,a.scores,a.percentiles,a.subtestResults||'{}',a.notes,a.recommendations]));},
@@ -417,8 +417,26 @@ const saveAll = (key) => ({
   settings:async()=>{await sheetClear('設定!A2:B99');const rows=Object.entries(DB.settings);if(rows.length)await sheetAppend('設定!A2',rows);},
   initial:async()=>{await sheetClear('初評報告!A2:C999');if(DB.initialAssessments.length)await sheetAppend('初評報告!A2',DB.initialAssessments.map(a=>[a.id,a.caseId,a.data]));}
 })[key];
-
+ 
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+ 
+function confirmDialog(msg, onConfirm){
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(44,62,80,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:300px;width:100%;text-align:center">
+    <div style="font-size:24px;margin-bottom:12px">⚠️</div>
+    <div style="font-size:15px;font-weight:600;color:var(--navy);margin-bottom:8px">確認刪除</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">${msg}</div>
+    <div style="display:flex;gap:10px">
+      <button id="cd-cancel" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer;font-family:inherit">取消</button>
+      <button id="cd-confirm" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">確認刪除</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('cd-cancel').onclick=()=>overlay.remove();
+  document.getElementById('cd-confirm').onclick=()=>{overlay.remove();onConfirm();};
+}
 function navToCase(caseId){
   currentCase=DB.cases.find(c=>c.id===caseId);
   if(!currentCase)return;
@@ -437,7 +455,7 @@ function caseColor(id){return DB.cases.find(x=>x.id===id)?.color||COLORS[0];}
 function caseName(id){return DB.cases.find(x=>x.id===id)?.name||'–';}
 function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
 function firstDay(y,m){return new Date(y,m,1).getDay();}
-
+ 
 async function syncAll(){
   const btn=document.getElementById('syncBtn');
   btn.style.animation='spin .8s linear infinite';
@@ -445,14 +463,14 @@ async function syncAll(){
   catch(e){toast('❌ 同步失敗，請檢查網路');}
   finally{btn.style.animation='';btn.textContent='⟳ 同步';}
 }
-
+ 
 function getAgeGroup(dob){
   const m=ageMonths(dob);
   if(m<6)return'0-6m';if(m<12)return'6-12m';if(m<18)return'1-1.5y';
   if(m<24)return'1.5-2y';if(m<30)return'2-2.5y';if(m<36)return'2.5-3y';
   if(m<48)return'3-4y';if(m<60)return'4-5y';if(m<72)return'5-6y';return'6y+';
 }
-
+ 
 function calcFee(type,groupSize,timeSlot){
   const s=DB.settings;
   if(type==='assess_init')   return timeSlot==='evening_weekend'?+s.fee_assess_init_ew:+s.fee_assess_init_day;
@@ -460,7 +478,7 @@ function calcFee(type,groupSize,timeSlot){
   if(type==='individual'){return timeSlot==='evening_weekend'?+s.fee_individual_ew:+s.fee_individual_day;}
   return timeSlot==='evening_weekend'?+s.fee_group_ew:+s.fee_group_day;
 }
-
+ 
 // ══════════════════════════════════════════════════
 // NAV
 // ══════════════════════════════════════════════════
@@ -481,7 +499,7 @@ function render(){
     case'settings':m.innerHTML=renderSettings();break;
   }
 }
-
+ 
 // ══════════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════════
@@ -522,16 +540,25 @@ function renderDashboard(){
     </div>
     <div style="font-size:11px;color:var(--muted)">本月 ${mA.length} 次 · 已完成 ${done.length} 次</div>
   </div>
-  ${aG.length?`<div class="card"><div class="stitle">🎯 目標進度</div>${aG.slice(0,5).map(g=>`
-  <div style="margin-bottom:11px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-      <span style="font-size:12px">${caseName(g.caseId)} · <span style="color:var(--muted)">${g.area}</span></span>
-      <span style="font-size:12px;font-weight:700;color:${g.progress>=80?'var(--sage-d)':'var(--navy-l)'}">${g.progress}%</span>
-    </div>
-    <div class="prog"><div class="prog-bar" style="width:${g.progress}%;background:${caseColor(g.caseId)}"></div></div>
-  </div>`).join('')}</div>`:''}`;
+  ${active.length?`<div class="card"><div class="stitle">🎯 目標達成率</div>${active.map(c=>{
+    const cGoals=DB.goals.filter(g=>g.caseId===c.id);
+    const total=cGoals.length;
+    const done=cGoals.filter(g=>g.status==='done').length;
+    const avgP=total?Math.round(cGoals.reduce((s,g)=>s+g.progress,0)/total):0;
+    const pct=total?Math.round(done/total*100):0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="navToCase('${c.id}')">
+      <div class="av" style="width:32px;height:32px;background:${c.color};font-size:13px;flex-shrink:0">${c.name[0]||'?'}</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:13px;font-weight:600;color:var(--navy)">${c.name}</span>
+          <span style="font-size:12px;color:var(--muted)">${done}/${total} 達成 · 平均${avgP}%</span>
+        </div>
+        <div class="prog"><div class="prog-bar" style="width:${avgP}%;background:${c.color}"></div></div>
+      </div>
+      <span style="font-size:11px;color:var(--sage-d);font-weight:700">›</span>
+    </div>`;}).join('')}</div>`:''}`;
 }
-
+ 
 // ══════════════════════════════════════════════════
 // CASES LIST
 // ══════════════════════════════════════════════════
@@ -559,7 +586,7 @@ function renderCaseCards(list){
 }
 function filterCases(q){const g=document.getElementById('caseGrid');if(g)g.innerHTML=renderCaseCards(DB.cases.filter(c=>c.name.includes(q)||c.diagnosis.includes(q)));}
 function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='info';render();}
-
+ 
 // ══════════════════════════════════════════════════
 // CASE DETAIL
 // ══════════════════════════════════════════════════
@@ -571,10 +598,10 @@ function renderCaseDetail(){
   const cAs=DB.assessments.filter(a=>a.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
   const cM=DB.milestones.filter(m=>m.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
   const totalInc=cA.filter(a=>a.status==='done').reduce((s,a)=>s+a.fee,0);
-
+ 
   const TABS=[['info','資料'],['goals','目標'],['notes','紀錄'],['assess','評估'],['initial','初評報告'],['milestone','里程碑'],['appts','預約']];
   let body='';
-
+ 
   if(currentCaseTab==='info'){
     body=`<div class="card info-grid">
       ${[['姓名',c.name],['性別',c.gender==='male'?'男':c.gender==='female'?'女':'–'],['診斷',c.diagOther||c.diagnosis||'–'],['生日',c.dob||'–'],['年齡',age(c.dob)],['月齡',`${ageMonths(c.dob)} 個月`],['家長',c.guardian||'–'],['電話',c.phone||'–'],['累計次數',`${c.sessions} 次`],['狀態',c.status==='active'?'治療中':c.status==='pending'?'待初評':'暫停'],['備註',c.note||'–']].map(([k,v])=>`<div><div class="ik">${k}</div><div class="iv">${v}</div></div>`).join('')}
@@ -603,7 +630,7 @@ function renderCaseDetail(){
       ${g.target?`<div style="font-size:11px;color:var(--muted);margin-top:6px">目標日期：${g.target}</div>`:''}
     </div>`).join('')}`;
   } else if(currentCaseTab==='notes'){
-    body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button></div>
+    body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button><button class="btn btn-border btn-sm" onclick="openExportNotesModal('${c.id}')">📄 匯出 Word</button></div>
     ${cN.length===0?'<div class="empty"><div class="ei">📝</div>尚無治療紀錄</div>':cN.map(n=>{
       const att={present:'✅ 出席',absent:'❌ 缺課',late:'⏰ 遲到',makeup:'🔄 補課'}[n.attendance]||'–';
       return`<div class="card" style="border-left:4px solid ${c.color};padding:14px 16px;margin-bottom:10px">
@@ -691,7 +718,7 @@ function renderCaseDetail(){
       </div>
     </div>`).join('')}</div>`;
   }
-
+ 
   return`
   <button class="back-btn" onclick="currentCase=null;render()">← 返回列表</button>
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
@@ -702,7 +729,7 @@ function renderCaseDetail(){
   <div class="tabs">${TABS.map(([k,l])=>`<button class="tab${currentCaseTab===k?' active':''}" onclick="currentCaseTab='${k}';render()">${l}</button>`).join('')}</div>
   ${body}`;
 }
-
+ 
 // ══════════════════════════════════════════════════
 // CALENDAR
 // ══════════════════════════════════════════════════
@@ -749,7 +776,7 @@ function renderCalendar(){
     <div class="cal-grid">${DAYS.map(d=>`<div class="cdn">${d}</div>`).join('')}${cells}</div>
   </div>${selDetail}`;
 }
-
+ 
 // ══════════════════════════════════════════════════
 // INCOME
 // ══════════════════════════════════════════════════
@@ -791,7 +818,7 @@ function renderIncome(){
     </div>
     <div class="prog"><div class="prog-bar" style="width:${totalDone?(c.income/totalDone*100):0}%;background:${c.color}"></div></div>
   </div>`).join('')}</div>`:''}
-
+ 
   <div class="card">
     <div class="stitle">💵 抽成計算</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px">抽成比例：<span id="commission-rate-display">${Math.round((+DB.settings.commissionRate||60))}%</span>
@@ -824,7 +851,7 @@ function renderIncome(){
     </div>
   </div>`;
 }
-
+ 
 // ══════════════════════════════════════════════════
 // SETTINGS
 // ══════════════════════════════════════════════════
@@ -862,7 +889,7 @@ function renderSettings(){
     <button class="btn btn-sage btn-full" onclick="saveSettings()">💾 儲存設定</button>
   </div>`;
 }
-
+ 
 function toggleCommissionEdit(){
   const el=document.getElementById('commission-edit');
   if(el) el.style.display=el.style.display==='none'?'block':'none';
@@ -888,14 +915,14 @@ async function saveSettings(){
   DB.settings.fee_group_ew=document.getElementById('s-grp-ew').value;
   toast('💾 儲存中…');await saveAll('settings')();toast('✅ 設定已儲存');
 }
-
+ 
 // ══════════════════════════════════════════════════
 // MODALS
 // ══════════════════════════════════════════════════
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 window.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)o.classList.remove('open');});});
-
+ 
 // Swipe down to close modal
 (function(){
   let startY=0,startX=0;
@@ -914,7 +941,7 @@ window.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').f
     }
   },{passive:true});
 })();
-
+ 
 // ── Case ──
 function openCaseModal(editId=null){
   const c=editId?DB.cases.find(x=>x.id===editId):null;
@@ -958,7 +985,7 @@ function openCaseModal(editId=null){
   <button class="btn btn-sage btn-full" onclick="submitCase('${editId||''}')">💾 ${c?'儲存修改':'建立個案'}</button>`;
   openModal('modal-case');
 }
-
+ 
 async function submitCase(editId){
   const name=document.getElementById('cf-name').value.trim();
   if(!name){toast('❌ 請輸入姓名');return;}
@@ -969,17 +996,20 @@ async function submitCase(editId){
   else{data.sessions=0;data.color=COLORS[DB.cases.length%COLORS.length];DB.cases.push(data);}
   closeModal('modal-case');toast('💾 儲存中…');await saveAll('cases')();toast('✅ 已儲存');render();
 }
-
+ 
 async function deleteCase(id){
-  if(!confirm('確定要刪除此個案？所有相關資料都會一併刪除。'))return;
+  confirmDialog('刪除個案後，所有相關資料（預約、目標、紀錄、評估）都會一併刪除，此操作無法復原。',async()=>{
+  await _doDeleteCase(id);});
+}
+async function _doDeleteCase(id){
   DB.cases=DB.cases.filter(c=>c.id!==id);DB.appts=DB.appts.filter(a=>a.caseId!==id);
   DB.goals=DB.goals.filter(g=>g.caseId!==id);DB.notes=DB.notes.filter(n=>n.caseId!==id);
   DB.assessments=DB.assessments.filter(a=>a.caseId!==id);DB.milestones=DB.milestones.filter(m=>m.caseId!==id);
   currentCase=null;toast('🗑 刪除中…');
   await Promise.all([saveAll('cases')(),saveAll('appts')(),saveAll('goals')(),saveAll('notes')(),saveAll('assess')(),saveAll('milestones')()]);
-  toast('✅ 已刪除');render();
+  saveCache();toast('✅ 已刪除');render();
 }
-
+ 
 // ── Appt ──
 function openApptModal(prefillCaseId=''){
   const isWeekend=d=>{if(!d)return false;const day=new Date(d).getDay();return day===0||day===6;};
@@ -1013,35 +1043,64 @@ function openApptModal(prefillCaseId=''){
   </div>
   <div class="fg"><label class="fl">費用（元）</label><input class="fi" type="number" id="af-fee" value="${DB.settings.fee_individual_day||1200}"></div>
   <div class="fg"><label class="fl">治療內容</label><input class="fi" id="af-note" placeholder="如：精細動作訓練"></div>
+  <div class="fg"><label class="fl">重複設定</label>
+    <select class="fsel" id="af-recurring" onchange="toggleRecurringEnd()">
+      <option value="once">單次預約</option>
+      <option value="weekly">每週相同時間重複</option>
+    </select>
+  </div>
+  <div id="af-recurring-wrap" style="display:none">
+    <div class="fg"><label class="fl">重複到（結束日期）</label><input class="fi" type="date" id="af-recurring-end"></div>
+  </div>
   <button class="btn btn-peach btn-full" onclick="submitAppt()">📅 新增預約</button>`;
   openModal('modal-appt');
 }
-
+ 
 function toggleGroupSize(){}
+function toggleRecurringEnd(){
+  const v=document.getElementById('af-recurring')?.value;
+  const w=document.getElementById('af-recurring-wrap');
+  if(w) w.style.display=v==='weekly'?'block':'none';
+}
 function autoFillFee(){
   const type=document.getElementById('af-type')?.value||'individual';
   const slot=document.getElementById('af-slot')?.value||'day';
   const fee=calcFee(type,1,slot);
   const fi=document.getElementById('af-fee');if(fi)fi.value=fee;
 }
-
+ 
 async function submitAppt(){
   const caseId=document.getElementById('af-case').value,date=document.getElementById('af-date').value;
   if(!caseId||!date){toast('❌ 請選擇個案和日期');return;}
   const type=document.getElementById('af-type').value;
   const slot=document.getElementById('af-slot')?.value||'day';
-  const a={id:newId(),caseId,date,time:document.getElementById('af-time').value,duration:50,fee:+document.getElementById('af-fee').value||0,note:document.getElementById('af-note').value,status:'upcoming',type,groupSize:1,timeSlot:slot};
-  DB.appts.push(a);
-  const cidx=DB.cases.findIndex(c=>c.id===caseId);if(cidx>=0)DB.cases[cidx].sessions++;
-  closeModal('modal-appt');toast('💾 儲存中…');await Promise.all([saveAll('appts')(),saveAll('cases')()]);toast('✅ 預約已新增');render();
+  const recurring=document.getElementById('af-recurring')?.value||'once';
+  const recurringEnd=document.getElementById('af-recurring-end')?.value||'';
+  const baseAppt={caseId,time:document.getElementById('af-time').value,duration:50,fee:+document.getElementById('af-fee').value||0,note:document.getElementById('af-note').value,status:'upcoming',type,groupSize:1,timeSlot:slot,recurring};
+  const appts=[];
+  if(recurring==='weekly'&&recurringEnd&&recurringEnd>date){
+    const rid=newId();
+    let cur=new Date(date);
+    const end=new Date(recurringEnd);
+    while(cur<=end){
+      appts.push({...baseAppt,id:newId(),date:cur.toISOString().slice(0,10),recurringId:rid});
+      cur.setDate(cur.getDate()+7);
+    }
+  } else {
+    appts.push({...baseAppt,id:newId(),date,recurringId:''});
+  }
+  DB.appts.push(...appts);
+  const cidx=DB.cases.findIndex(c=>c.id===caseId);if(cidx>=0)DB.cases[cidx].sessions+=appts.length;
+  closeModal('modal-appt');toast('💾 儲存中…');await Promise.all([saveAll('appts')(),saveAll('cases')()]);
+  saveCache();toast(`✅ 已新增 ${appts.length} 筆預約`);render();
 }
-
+ 
 async function toggleApptStatus(id){
   const a=DB.appts.find(x=>x.id===id);if(!a)return;
   a.status=a.status==='done'?'upcoming':'done';
   toast('💾 更新中…');await saveAll('appts')();toast('✅ 已更新');render();
 }
-
+ 
 function openEditApptModal(id){
   const a=DB.appts.find(x=>x.id===id);if(!a)return;
   document.getElementById('ma-title').textContent='編輯預約';
@@ -1082,7 +1141,7 @@ function openEditApptModal(id){
   <button class="btn btn-peach btn-full" onclick="submitEditAppt('${id}')">💾 儲存修改</button>`;
   openModal('modal-appt');
 }
-
+ 
 async function submitEditAppt(id){
   const a=DB.appts.find(x=>x.id===id);if(!a)return;
   const type=document.getElementById('af-type').value;
@@ -1097,13 +1156,36 @@ async function submitEditAppt(id){
   a.status=document.getElementById('af-status').value;
   closeModal('modal-appt');toast('💾 儲存中…');await saveAll('appts')();toast('✅ 已儲存');render();
 }
-
-async function deleteAppt(id){
-  if(!confirm('確定刪除此預約？'))return;
-  DB.appts=DB.appts.filter(a=>a.id!==id);
-  toast('🗑 刪除中…');await saveAll('appts')();toast('✅ 已刪除');render();
+ 
+function deleteAppt(id){
+  const a=DB.appts.find(x=>x.id===id);
+  const hasRecurring=a?.recurringId&&DB.appts.filter(x=>x.recurringId===a.recurringId).length>1;
+  if(hasRecurring){
+    // Show choice: delete one or all
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(44,62,80,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:300px;width:100%;text-align:center">
+      <div style="font-size:24px;margin-bottom:12px">🔄</div>
+      <div style="font-size:15px;font-weight:600;color:var(--navy);margin-bottom:8px">這是重複預約</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px">要刪除這一筆，還是所有重複預約？</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button id="da-one" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer;font-family:inherit">只刪除這一筆</button>
+        <button id="da-all" style="padding:10px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">刪除所有重複預約</button>
+        <button id="da-cancel" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:var(--muted)">取消</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('da-cancel').onclick=()=>overlay.remove();
+    document.getElementById('da-one').onclick=async()=>{overlay.remove();DB.appts=DB.appts.filter(x=>x.id!==id);toast('🗑 刪除中…');await saveAll('appts')();saveCache();toast('✅ 已刪除');render();};
+    document.getElementById('da-all').onclick=async()=>{overlay.remove();const rid=a.recurringId;DB.appts=DB.appts.filter(x=>x.recurringId!==rid);toast('🗑 刪除中…');await saveAll('appts')();saveCache();toast('✅ 已刪除所有重複預約');render();};
+  } else {
+    confirmDialog('確定要刪除此預約？',async()=>{
+      DB.appts=DB.appts.filter(x=>x.id!==id);
+      toast('🗑 刪除中…');await saveAll('appts')();saveCache();toast('✅ 已刪除');render();
+    });
+  }
 }
-
+ 
 // ── Goal ──
 function openGoalModal(editId=null){
   const g=editId?DB.goals.find(x=>x.id===editId):null;
@@ -1123,7 +1205,7 @@ function openGoalModal(editId=null){
   <button class="btn btn-lav btn-full" onclick="submitGoal('${editId||''}')">🎯 ${g?'儲存修改':'新增目標'}</button>`;
   openModal('modal-goal');
 }
-
+ 
 async function submitGoal(editId){
   const area=document.getElementById('gf-area').value,goal=document.getElementById('gf-goal').value.trim();
   if(!goal){toast('❌ 請填寫目標');return;}
@@ -1132,10 +1214,10 @@ async function submitGoal(editId){
   else DB.goals.push(data);
   closeModal('modal-goal');toast('💾 儲存中…');await saveAll('goals')();toast('✅ 已儲存');render();
 }
-
+ 
 function editGoalProgress(id){openGoalModal(id);}
-async function deleteGoal(id){if(!confirm('確定刪除此目標？'))return;DB.goals=DB.goals.filter(g=>g.id!==id);toast('🗑 刪除中…');await saveAll('goals')();toast('✅ 已刪除');render();}
-
+function deleteGoal(id){confirmDialog('確定要刪除此治療目標？',async()=>{DB.goals=DB.goals.filter(g=>g.id!==id);toast('🗑 刪除中…');await saveAll('goals')();saveCache();toast('✅ 已刪除');render();});}
+ 
 // ── Note ──
 function getSoapLabels(){
   try{return JSON.parse(DB.settings.soapLabels||'null')||{
@@ -1149,7 +1231,7 @@ async function saveSoapLabels(labels){
   DB.settings.soapLabels=JSON.stringify(labels);
   await saveAll('settings')();
 }
-
+ 
 function openNoteModal(editId=null){
   window._editNoteId=editId||null;
   const n=editId?DB.notes.find(x=>x.id===editId):null;
@@ -1194,12 +1276,12 @@ function openNoteModal(editId=null){
   <button class="btn btn-peach btn-full" onclick="submitNote('${n?.id||''}')">📝 ${n?'儲存修改':'儲存紀錄'}</button>`;
   openModal('modal-note');
 }
-
+ 
 function appendChip(k,val){
   const ta=document.getElementById('nf-soap-'+k);if(!ta)return;
   ta.value+=(ta.value&&!ta.value.endsWith('\n')?'，':'')+val;ta.focus();
 }
-
+ 
 function openLabelMgr(k){
   const labels=getSoapLabels();
   const kLabels=labels[k]||[];
@@ -1220,7 +1302,7 @@ function openLabelMgr(k){
   </div></div>`;
   wrap.innerHTML=html;
 }
-
+ 
 async function addLabel(k){
   const inp=document.getElementById('lm-new-'+k);if(!inp||!inp.value.trim())return;
   const labels=getSoapLabels();
@@ -1243,7 +1325,7 @@ function updateLabelImm(k,i,val){
   DB.settings.soapLabels=JSON.stringify(labels);
 }
 async function flushLabels(){await saveAll('settings')();}
-
+ 
 async function submitNote(editId){
   const data={id:editId||newId(),caseId:currentCase.id,
     date:document.getElementById('nf-date').value,
@@ -1259,10 +1341,10 @@ async function submitNote(editId){
   else DB.notes.push(data);
   closeModal('modal-note');toast('💾 儲存中…');await saveAll('notes')();toast('✅ 紀錄已儲存');render();
 }
-
+ 
 function editNote(id){openNoteModal(id);}
-async function deleteNote(id){if(!confirm('確定刪除此紀錄？'))return;DB.notes=DB.notes.filter(n=>n.id!==id);toast('🗑 刪除中…');await saveAll('notes')();toast('✅ 已刪除');render();}
-
+function deleteNote(id){confirmDialog('確定要刪除這筆治療紀錄？',async()=>{DB.notes=DB.notes.filter(n=>n.id!==id);toast('🗑 刪除中…');await saveAll('notes')();saveCache();toast('✅ 已刪除');render();});}
+ 
 // ── Assessment ──
 // Assessment subtests by tool
 const ASSESS_SUBTESTS = {
@@ -1337,7 +1419,7 @@ const ASSESS_SUBTESTS = {
     ]
   },
 };
-
+ 
 const SCORE_LEVELS = {
   standard: [
     {min:130,label:'非常優秀',color:'#2E7D32'},{min:115,label:'優秀',color:'#4CAF50'},
@@ -1349,13 +1431,13 @@ const SCORE_LEVELS = {
     {min:5,label:'邊緣',color:'#FF9800'},{min:0,label:'顯著落後',color:'#E07070'}
   ]
 };
-
+ 
 function getScoreLevel(score,type='standard'){
   const levels=SCORE_LEVELS[type]||SCORE_LEVELS.standard;
   for(const l of levels){if(score>=l.min)return l;}
   return levels[levels.length-1];
 }
-
+ 
 function openAssessModal(editId=null){
   const a=editId?DB.assessments.find(x=>x.id===editId):null;
   let scores={},pcts={},subtestResults={};
@@ -1381,7 +1463,7 @@ function openAssessModal(editId=null){
   renderAssessContent();
   openModal('modal-assess');
 }
-
+ 
 function renderAssessContent(){
   const toolKey=document.getElementById('asf-tool')?.value||'PDMS-2';
   const tool=ASSESS_TOOLS[toolKey];
@@ -1391,12 +1473,12 @@ function renderAssessContent(){
   const pcts=toolKey===prev.toolKey?prev.pcts:{};
   const subR=toolKey===prev.toolKey?prev.subtestResults:{};
   const wrap=document.getElementById('assess-content-wrap');if(!wrap)return;
-
+ 
   const scoreTypeLabels={'0-1':'0=未通過 / 1=通過','0-2':'0=無法 / 1=嘗試 / 2=完成','0-4':'0-4分','0-1-2':'0=從不 / 1=有時 / 2=總是','never-always':'1=從不 / 2=偶爾 / 3=常常 / 4=總是'};
-
+ 
   let html=`<div style="background:var(--teal-l);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--teal)">`;
   html+=`📋 ${tool.name} · 適用年齡：${tool.ageRange}</div>`;
-
+ 
   // Subtests checklist
   if(subtoolDef?.subtests){
     html+=`<div class="fg"><label class="fl">分測驗項目</label>`;
@@ -1436,7 +1518,7 @@ function renderAssessContent(){
     });
     html+=`</div></div>`;
   }
-
+ 
   // Composite / summary scores
   const compList=subtoolDef?.composites||subtoolDef?.quadrants||[];
   if(compList.length){
@@ -1459,17 +1541,17 @@ function renderAssessContent(){
     });
     html+=`</div>`;
   }
-
+ 
   wrap.innerHTML=html;
 }
-
+ 
 function setSubtest(name,val){
   if(!window._assessEdit.subtestResults)window._assessEdit.subtestResults={};
   window._assessEdit.subtestResults[name]=val;
   // Re-render to update button states
   renderAssessContent();
 }
-
+ 
 function updateScoreLevel(compName){
   const val=+document.getElementById('sc-'+compName)?.value;
   const levelEl=document.getElementById('level-'+compName);
@@ -1479,7 +1561,7 @@ function updateScoreLevel(compName){
   levelEl.style.cssText=`margin-top:6px;display:inline-block;padding:3px 10px;border-radius:20px;background:${level.color}22;color:${level.color};font-size:12px;font-weight:700`;
   levelEl.textContent=level.label;
 }
-
+ 
 function renderAssessScores(){
   const toolKey=document.getElementById('asf-tool')?.value||'PDMS-2';
   const tool=ASSESS_TOOLS[toolKey];
@@ -1497,7 +1579,7 @@ function renderAssessScores(){
     ${tool.hasPercentile?`<div style="font-size:10px;color:var(--muted);margin-top:-4px">第二欄為百分位數（Percentile）</div>`:''}
   </div>`;
 }
-
+ 
 async function submitAssess(editId){
   const toolKey=document.getElementById('asf-tool').value;
   const tool=ASSESS_TOOLS[toolKey];
@@ -1520,11 +1602,11 @@ async function submitAssess(editId){
   else DB.assessments.push(data);
   closeModal('modal-assess');toast('💾 儲存中…');await saveAll('assess')();toast('✅ 評估已儲存');render();
 }
-
+ 
 function editAssess(id){openAssessModal(id);}
 function renderAssessScores(){renderAssessContent();}
-async function deleteAssess(id){if(!confirm('確定刪除此評估記錄？'))return;DB.assessments=DB.assessments.filter(a=>a.id!==id);toast('🗑 刪除中…');await saveAll('assess')();toast('✅ 已刪除');render();}
-
+function deleteAssess(id){confirmDialog('確定要刪除此評估記錄？',async()=>{DB.assessments=DB.assessments.filter(a=>a.id!==id);toast('🗑 刪除中…');await saveAll('assess')();saveCache();toast('✅ 已刪除');render();});}
+ 
 // ── Milestones ──
 function openMilestoneModal(){
   const c=currentCase;
@@ -1545,7 +1627,7 @@ function openMilestoneModal(){
   <button class="btn btn-gold btn-full" onclick="submitMilestone('${ageGrp}')">🌱 儲存里程碑紀錄</button>`;
   openModal('modal-milestone');
 }
-
+ 
 function renderMilestoneSection(title,prefix,items){
   return`<div class="milestone-section">
     <div class="milestone-title">${title}</div>
@@ -1560,7 +1642,7 @@ function renderMilestoneSection(title,prefix,items){
     </div>`).join('')}
   </div>`;
 }
-
+ 
 window._msData={};
 function setMilestone(prefix,i,val){
   if(!window._msData[prefix])window._msData[prefix]={};
@@ -1570,7 +1652,7 @@ function setMilestone(prefix,i,val){
     if(el){el.className='milestone-check'+(v===val?' '+v:'');}
   });
 }
-
+ 
 async function submitMilestone(ageGrp){
   const AREA_MAP={gross:'mf-gross',fine:'mf-fine',cognitive:'mf-cog',social:'mf-social',selfcare:'mf-sc'};
   const toObj=prefix=>{
@@ -1588,7 +1670,7 @@ async function submitMilestone(ageGrp){
   DB.milestones.push(data);window._msData={};
   closeModal('modal-milestone');toast('💾 儲存中…');await saveAll('milestones')();toast('✅ 里程碑已儲存');render();
 }
-
+ 
 function viewMilestone(id){
   const m=DB.milestones.find(x=>x.id===id);if(!m)return;
   const ag=MILESTONES[m.ageGroup]||{};
@@ -1610,9 +1692,9 @@ function viewMilestone(id){
   <button class="btn btn-red btn-full" style="margin-top:12px" onclick="deleteMilestone('${id}')">🗑 刪除此紀錄</button>`;
   openModal('modal-milestone');
 }
-
-async function deleteMilestone(id){if(!confirm('確定刪除？'))return;DB.milestones=DB.milestones.filter(m=>m.id!==id);closeModal('modal-milestone');toast('🗑 刪除中…');await saveAll('milestones')();toast('✅ 已刪除');render();}
-
+ 
+function deleteMilestone(id){confirmDialog('確定要刪除此里程碑紀錄？',async()=>{DB.milestones=DB.milestones.filter(m=>m.id!==id);closeModal('modal-milestone');toast('🗑 刪除中…');await saveAll('milestones')();saveCache();toast('✅ 已刪除');render();});}
+ 
 // ── Initial Assessment ──
 function renderInitialAssessForm(c, d){
   const chk=(key,val,label)=>{
@@ -1626,18 +1708,18 @@ function renderInitialAssessForm(c, d){
     ${title} <label style="margin-left:12px;font-size:12px;font-weight:400;cursor:pointer">
     <input type="checkbox" style="cursor:pointer" ${d[key+'_skip']?'checked':''} onchange="iaSet('${key}_skip','true',this.checked,false)"> 未評估</label>
   </td></tr>`;
-
+ 
   const today = new Date().toISOString().slice(0,10);
-
+ 
   return `
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;flex-wrap:wrap">
     <button class="btn btn-teal btn-sm" onclick="saveInitialAssess('${c.id}')">💾 儲存</button>
     <button class="btn btn-sage btn-sm" onclick="exportInitialDocx('${c.id}')">📄 匯出 Word</button>
   </div>
-
+ 
   <div class="card" style="padding:14px;overflow-x:auto">
   <table style="width:100%;border-collapse:collapse;font-size:13px">
-
+ 
   <!-- 基本資料 -->
   <tr><td colspan="2" style="padding:8px 10px;background:var(--sage-d);color:#fff;font-size:14px;font-weight:700">禾森職能治療所 個案初評報告</td></tr>
   ${row('姓名',`<strong>${c.name}</strong>`)}
@@ -1646,7 +1728,7 @@ function renderInitialAssessForm(c, d){
   ${row('診斷',`<strong>${c.diagOther||c.diagnosis||'–'}</strong>`)}
   ${row('治療期間',`<input class="fi" style="font-size:13px;padding:5px 8px" value="${d.period||today}" onchange="iaSetText('period',this.value)">`)}
   ${row('家長主訴',txt('chiefComplaint','請填寫家長主要擔心的問題…',3))}
-
+ 
   <!-- 粗大動作 -->
   ${secHead('粗大動作','gross')}
   ${row('肌肉張力',chk('muscleTone','正常','正常')+chk('muscleTone','偏低','肌肉張力偏低')+chk('muscleTone','偏高','肌肉張力偏高'))}
@@ -1658,7 +1740,7 @@ function renderInitialAssessForm(c, d){
   ${row('位移動作',chk('locomotion','可雙腳跳','可雙腳跳')+chk('locomotion','可單腳跳','可單腳跳')+chk('locomotion','可走直線','可走直線')+chk('locomotion','可倒退走直線','可倒退走直線'))}
   ${row('物體操作',chk('objectManip','丟球','丟球')+chk('objectManip','接球','接球')+chk('objectManip','踢球','踢球'))}
   ${row('行為觀察',chk('grossBehavior','正常','正常')+chk('grossBehavior','邊緣','邊緣')+chk('grossBehavior','遲緩','遲緩')+'<br>行為表現：'+txt('grossBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 精細動作 -->
   ${secHead('精細動作','fine')}
   ${row('抓握能力',chk('grasping','正常','正常')+chk('grasping','不佳','不佳'))}
@@ -1668,7 +1750,7 @@ function renderInitialAssessForm(c, d){
   ${row('書寫表現',`慣用手：${chk('dominantHand','右手','右手')}${chk('dominantHand','左手','左手')}${chk('dominantHand','尚未建立','尚未建立')}<br>握筆姿勢：${['全掌抓握','旋前抓握','靜態三指抓握','靜態四指抓握','動態三指抓握','動態四指抓握'].map(v=>chk('pencilGrip',v,v)).join('')}`)}
   ${row('形狀仿畫',['直線','圓形','十字','正方形','三角形'].map(v=>chk('shapes',v,v)).join(''))}
   ${row('行為觀察',chk('fineBehavior','正常','正常')+chk('fineBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('fineBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 視知覺 -->
   ${secHead('視知覺','visual')}
   ${['視覺搜尋','視覺區辨','視覺對應','視覺空間','視覺記憶'].map(item=>{
@@ -1676,7 +1758,7 @@ function renderInitialAssessForm(c, d){
     return row(item, chk(key,'正常','正常')+chk(key,'不佳','不佳'));
   }).join('')}
   ${row('行為觀察',chk('visualBehavior','正常','正常')+chk('visualBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('visualBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 感覺統合 -->
   ${secHead('感覺統合','sensory')}
   ${row('觸覺',chk('tactile','正常','正常')+chk('tactile','反應不足','反應不足')+chk('tactile','反應過度','反應過度'))}
@@ -1685,7 +1767,7 @@ function renderInitialAssessForm(c, d){
   ${row('本體覺',chk('proprioception','正常','正常')+chk('proprioception','反應不足','反應不足')+chk('proprioception','反應過度','反應過度')+'<br>'+['經常撞到','經常跌倒','經常與人觸碰','動作笨拙'].map(v=>chk('proprioceptionNote',v,v)).join(''))}
   ${row('前庭覺',chk('vestibular','正常','正常')+chk('vestibular','反應不足','反應不足')+chk('vestibular','反應過度','反應過度')+'<br>'+chk('vestibularNote','尋求刺激','尋求刺激')+chk('vestibularNote','害怕高度變化','害怕高度變化'))}
   ${row('行為觀察',chk('sensoryBehavior','正常','正常')+chk('sensoryBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('sensoryBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 認知功能 -->
   ${secHead('認知功能','cognitive')}
   ${row('注意力',`警醒度：${chk('arousal','正常','正常')}${chk('arousal','常態過高','常態過高')}${chk('arousal','有時過高','有時過高')}${chk('arousal','常態過低','常態過低')}${chk('arousal','有時過低','有時過低')}<br>`+
@@ -1695,7 +1777,7 @@ function renderInitialAssessForm(c, d){
   ${row('物品命名',chk('naming','能命名','能命名')+chk('naming','能理解物品用途','能理解物品用途'))}
   ${row('問題解決',['能自主產生問題解決策略','半數以上時間可自主產生策略','需要大人引導後可產生策略','大多依賴大人給予解決方法'].map(v=>chk('problemSolving',v,v)+'<br>').join(''))}
   ${row('行為觀察',chk('cognitiveBehavior','正常','正常')+chk('cognitiveBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('cognitiveBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 社會情緒 -->
   ${secHead('社會情緒功能','social')}
   ${row('衝動控制',['大多情境能夠抑制衝動（90%以上）','部分情境能夠抑制衝動（50%以上）','少數情境能夠抑制衝動（25%以下）','大多無法抑制衝動'].map(v=>chk('impulse',v,v)+'<br>').join('')+'容易挫折的情境：'+txt('impulseNote','描述情境…',1))}
@@ -1705,13 +1787,13 @@ function renderInitialAssessForm(c, d){
   ${row('互動動機',chk('interactionMotivation','大多時候有主動的互動動機','大多時候有主動的互動動機')+'<br>'+chk('interactionMotivation','僅被動回應他人互動','僅被動回應他人互動')+'<br>'+chk('interactionMotivation','鮮少觀察到有互動動機','鮮少觀察到有互動動機'))}
   ${row('互動關係',chk('interaction','能主動建立互動關係','能主動建立互動關係')+'<br>'+chk('interaction','協助下能與他人建立互動關係','協助下能與他人建立互動關係')+'<br>'+chk('interaction','大多無法建立持續互動關係','大多無法建立持續互動關係'))}
   ${row('行為觀察',chk('socialBehavior','正常','正常')+chk('socialBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('socialBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 遊戲型態 -->
   ${secHead('遊戲型態','play')}
   ${row('目前遊戲階層',['單獨遊戲','平行遊戲','聯合遊戲','合作遊戲'].map(v=>chk('playLevel',v,v)+'<br>').join(''))}
   ${row('遊戲能力',['扮演遊戲','建構遊戲','規則性遊戲'].map(v=>chk('playAbility',v,v)+'<br>').join(''))}
   ${row('行為觀察',chk('playBehavior','正常','正常')+chk('playBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('playBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 生活自理 -->
   ${secHead('生活自理','adl')}
   ${row('進食',chk('eating','使用湯匙吃東西（1.5-2歲）','使用湯匙吃東西（1.5-2歲）'))}
@@ -1721,7 +1803,7 @@ function renderInitialAssessForm(c, d){
   ${row('如廁',chk('toilet','可自行完成所有如廁步驟（包含穿脫褲子、擦拭、沖水及洗手）','可自行完成所有如廁步驟'))}
   ${row('生活作息',['規律作息：在提醒下，自己收玩具、去刷牙，然後上床睡覺（4-4.5歲）','管理自己的事物：能收拾好個人的物品，如文具、玩具等到固定的位置（4-4.5歲）','主動協助家庭事務：協助簡單的家事，如擺碗筷、擦桌子（4.5-5歲）'].map(v=>chk('dailyRoutine',v,v)+'<br>').join(''))}
   ${row('行為觀察',chk('adlBehavior','正常','正常')+chk('adlBehavior','需要訓練','需要訓練')+'<br>行為表現：'+txt('adlBehaviorNote','描述行為表現…',1))}
-
+ 
   <!-- 評估結論 -->
   <tr><td colspan="2" style="padding:8px 10px;background:var(--navy);color:#fff;font-size:13px;font-weight:700">評估結論</td></tr>
   ${row('評估結論',txt('conclusion','請填寫評估總結…',4))}
@@ -1731,11 +1813,11 @@ function renderInitialAssessForm(c, d){
   ${row('建議排課頻率',`一週 <input class="fi" style="width:60px;padding:4px 8px;font-size:13px;display:inline-block" value="${d.frequency||''}" onchange="iaSetText('frequency',this.value)"> 次`)}
   ${row('建議上課方式',chk('classType','個別課','個別課')+chk('classType','團體課','團體課')+chk('classType','轉介語言治療','轉介語言治療'))}
   ${row('職能治療師',`<input class="fi" style="font-size:13px;padding:5px 8px" value="${d.therapistName||''}" onchange="iaSetText('therapistName',this.value)" placeholder="治療師姓名">`)}
-
+ 
   </table>
   </div>`;
 }
-
+ 
 // Live data update functions
 window._iaCache = {};
 function iaSet(key, val, checked, isArray){
@@ -1757,7 +1839,7 @@ function iaSetText(key, val){
   if(!window._iaCache[c.id]) window._iaCache[c.id] = {};
   window._iaCache[c.id][key] = val;
 }
-
+ 
 async function saveInitialAssess(caseId){
   const cache = window._iaCache[caseId] || {};
   // Merge with existing
@@ -1773,7 +1855,7 @@ async function saveInitialAssess(caseId){
   await saveAll('initial')();
   toast('✅ 初評報告已儲存');
 }
-
+ 
 async function exportInitialDocx(caseId){
   toast('📄 準備匯出…');
   const c = DB.cases.find(x=>x.id===caseId);
@@ -1784,7 +1866,7 @@ async function exportInitialDocx(caseId){
   try{ if(ia) d = JSON.parse(ia.data||'{}'); }catch(e){}
   const cache = window._iaCache[caseId]||{};
   Object.assign(d, cache);
-
+ 
   // Build docx content as HTML then trigger print-to-PDF via new window
   const html = buildInitialReportHTML(c, d);
   const w = window.open('','_blank');
@@ -1794,7 +1876,7 @@ async function exportInitialDocx(caseId){
   setTimeout(()=>{ w.print(); }, 800);
   toast('✅ 請選擇「儲存為PDF」或列印');
 }
-
+ 
 function buildInitialReportHTML(c, d){
   const getVal = key => {
     const v = d[key];
@@ -1806,7 +1888,7 @@ function buildInitialReportHTML(c, d){
     const checked = v===val || (Array.isArray(v)&&v.includes(val));
     return `<span style="margin-right:10px">${checked?'☑':'☐'} ${val}</span>`;
   };
-
+ 
   return `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
   <title>初評報告 - ${c.name}</title>
   <style>
@@ -1829,7 +1911,7 @@ function buildInitialReportHTML(c, d){
     <tr><td class="label">治療期間</td><td colspan="3">${d.period||''}</td></tr>
     <tr><td class="label">家長主訴</td><td colspan="3">${(d.chiefComplaint||'').replace(/\n/g,'<br>')}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">粗大動作</td></tr>
     <tr><td class="label">肌肉張力</td><td>${chkDisplay('muscleTone','正常')}${chkDisplay('muscleTone','偏低')}${chkDisplay('muscleTone','偏高')}</td></tr>
@@ -1842,7 +1924,7 @@ function buildInitialReportHTML(c, d){
     <tr><td class="label">物體操作</td><td>${['丟球','接球','踢球'].map(v=>chkDisplay('objectManip',v)).join('')}</td></tr>
     <tr><td class="label">行為觀察</td><td>${chkDisplay('grossBehavior','正常')}${chkDisplay('grossBehavior','邊緣')}${chkDisplay('grossBehavior','遲緩')}<br>${d.grossBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">精細動作</td></tr>
     <tr><td class="label">抓握能力</td><td>${chkDisplay('grasping','正常')}${chkDisplay('grasping','不佳')}</td></tr>
@@ -1853,13 +1935,13 @@ function buildInitialReportHTML(c, d){
     <tr><td class="label">形狀仿畫</td><td>${['直線','圓形','十字','正方形','三角形'].map(v=>chkDisplay('shapes',v)).join('')}</td></tr>
     <tr><td class="label">行為觀察</td><td>${chkDisplay('fineBehavior','正常')}${chkDisplay('fineBehavior','需要訓練')}<br>${d.fineBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">視知覺</td></tr>
     ${['視覺搜尋','視覺區辨','視覺對應','視覺空間','視覺記憶'].map(item=>`<tr><td class="label">${item}</td><td>${chkDisplay('vp_'+item,'正常')}${chkDisplay('vp_'+item,'不佳')}</td></tr>`).join('')}
     <tr><td class="label">行為觀察</td><td>${chkDisplay('visualBehavior','正常')}${chkDisplay('visualBehavior','需要訓練')}<br>${d.visualBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">感覺統合</td></tr>
     <tr><td class="label">觸覺</td><td>${chkDisplay('tactile','正常')}${chkDisplay('tactile','反應不足')}${chkDisplay('tactile','反應過度')}</td></tr>
@@ -1869,7 +1951,7 @@ function buildInitialReportHTML(c, d){
     <tr><td class="label">前庭覺</td><td>${chkDisplay('vestibular','正常')}${chkDisplay('vestibular','反應不足')}${chkDisplay('vestibular','反應過度')}<br>${chkDisplay('vestibularNote','尋求刺激')}${chkDisplay('vestibularNote','害怕高度變化')}</td></tr>
     <tr><td class="label">行為觀察</td><td>${chkDisplay('sensoryBehavior','正常')}${chkDisplay('sensoryBehavior','需要訓練')}<br>${d.sensoryBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">認知功能</td></tr>
     <tr><td class="label">注意力</td><td>警醒度：${['正常','常態過高','有時過高','常態過低','有時過低'].map(v=>chkDisplay('arousal',v)).join('')}<br>${['集中性','選擇性','分散性','交替性'].map(t=>t+'注意力：'+chkDisplay('attention_'+t,'正常')+chkDisplay('attention_'+t,'不佳')+'<br>').join('')}</td></tr>
@@ -1879,7 +1961,7 @@ function buildInitialReportHTML(c, d){
     <tr><td class="label">問題解決</td><td>${['能自主產生問題解決策略','半數以上時間可自主產生策略','需要大人引導後可產生策略','大多依賴大人給予解決方法'].map(v=>chkDisplay('problemSolving',v)+'<br>').join('')}</td></tr>
     <tr><td class="label">行為觀察</td><td>${chkDisplay('cognitiveBehavior','正常')}${chkDisplay('cognitiveBehavior','需要訓練')}<br>${d.cognitiveBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">社會情緒功能</td></tr>
     <tr><td class="label">衝動控制</td><td>${['大多情境能夠抑制衝動（90%以上）','部分情境能夠抑制衝動（50%以上）','少數情境能夠抑制衝動（25%以下）','大多無法抑制衝動'].map(v=>chkDisplay('impulse',v)+'<br>').join('')}容易挫折的情境：${d.impulseNote||''}</td></tr>
@@ -1889,14 +1971,14 @@ function buildInitialReportHTML(c, d){
     <tr><td class="label">互動關係</td><td>${['能主動建立互動關係','協助下能與他人建立互動關係','大多無法建立持續互動關係'].map(v=>chkDisplay('interaction',v)+'<br>').join('')}</td></tr>
     <tr><td class="label">行為觀察</td><td>${chkDisplay('socialBehavior','正常')}${chkDisplay('socialBehavior','需要訓練')}<br>${d.socialBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">遊戲型態</td></tr>
     <tr><td class="label">遊戲階層</td><td>${['單獨遊戲','平行遊戲','聯合遊戲','合作遊戲'].map(v=>chkDisplay('playLevel',v)).join('')}</td></tr>
     <tr><td class="label">遊戲能力</td><td>${['扮演遊戲','建構遊戲','規則性遊戲'].map(v=>chkDisplay('playAbility',v)).join('')}</td></tr>
     <tr><td class="label">行為觀察</td><td>${chkDisplay('playBehavior','正常')}${chkDisplay('playBehavior','需要訓練')}<br>${d.playBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">生活自理</td></tr>
     <tr><td class="label">進食</td><td>${chkDisplay('eating','使用湯匙吃東西（1.5-2歲）')}</td></tr>
@@ -1906,7 +1988,7 @@ function buildInitialReportHTML(c, d){
     <tr><td class="label">生活作息</td><td>${['規律作息：在提醒下，自己收玩具、去刷牙，然後上床睡覺（4-4.5歲）','管理自己的事物：能收拾好個人的物品，如文具、玩具等到固定的位置（4-4.5歲）','主動協助家庭事務：協助簡單的家事，如擺碗筷、擦桌子（4.5-5歲）'].map(v=>chkDisplay('dailyRoutine',v)+'<br>').join('')}</td></tr>
     <tr><td class="label">行為觀察</td><td>${chkDisplay('adlBehavior','正常')}${chkDisplay('adlBehavior','需要訓練')}<br>${d.adlBehaviorNote||''}</td></tr>
   </table>
-
+ 
   <table>
     <tr><td colspan="2" class="sec-head">評估結論</td></tr>
     <tr><td class="label">評估結論</td><td>${(d.conclusion||'').replace(/\n/g,'<br>')}</td></tr>
@@ -1919,21 +2001,102 @@ function buildInitialReportHTML(c, d){
   </table>
   </body></html>`;
 }
-
-
+ 
+ 
+ 
+// ── Export Notes Modal ──
+function openExportNotesModal(caseId){
+  const c=DB.cases.find(x=>x.id===caseId);if(!c)return;
+  const notes=DB.notes.filter(n=>n.caseId===caseId).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!notes.length){toast('此個案尚無治療紀錄');return;}
+  const minDate=notes[0].date, maxDate=notes[notes.length-1].date;
+  // Create overlay
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(44,62,80,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:22px 22px 0 0;padding:24px;width:100%;max-width:520px;padding-bottom:calc(env(safe-area-inset-bottom)+24px)">
+    <div style="font-family:Georgia,serif;font-size:18px;color:var(--navy);margin-bottom:16px">📄 匯出治療紀錄</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${c.name} · 共 ${notes.length} 筆紀錄</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div><label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">開始日期</label>
+        <input class="fi" type="date" id="export-from" value="${minDate}"></div>
+      <div><label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">結束日期</label>
+        <input class="fi" type="date" id="export-to" value="${maxDate}"></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="this.closest('div[style]').parentElement.remove()" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer;font-family:inherit">取消</button>
+      <button onclick="doExportNotes('${caseId}')" style="flex:2;padding:11px;border-radius:10px;border:none;background:var(--sage-d);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">📄 匯出</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
+ 
+function doExportNotes(caseId){
+  const c=DB.cases.find(x=>x.id===caseId);if(!c)return;
+  const from=document.getElementById('export-from')?.value||'';
+  const to=document.getElementById('export-to')?.value||'';
+  const notes=DB.notes.filter(n=>n.caseId===caseId&&(!from||n.date>=from)&&(!to||n.date<=to))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  if(!notes.length){toast('所選日期範圍內沒有紀錄');return;}
+  document.querySelectorAll('div[style*="position:fixed"]').forEach(el=>{if(el.id!=='pwd-screen'&&el.id!=='toast'&&el.id!=='loading')el.remove();});
+ 
+  const attLabel={present:'出席',absent:'缺課',late:'遲到',makeup:'補課'};
+  const html=`<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
+  <title>治療紀錄 - ${c.name}</title>
+  <style>
+    body{font-family:'微軟正黑體','Microsoft JhengHei',Arial,sans-serif;font-size:11pt;margin:20mm;color:#000}
+    h1{font-size:14pt;margin-bottom:4px}
+    h2{font-size:11pt;color:#555;margin-top:0;margin-bottom:20px;font-weight:400}
+    .note{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #ddd;page-break-inside:avoid}
+    .note-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .note-date{font-size:13pt;font-weight:700;color:#2C3E50}
+    .note-meta{font-size:10pt;color:#777}
+    .soap-label{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9pt;font-weight:700;margin-bottom:3px}
+    .soap-s{background:#D4EAD9;color:#4E8A65}
+    .soap-o{background:#EBF0FC;color:#5B78C9}
+    .soap-a{background:#FAE8D8;color:#c07040}
+    .soap-p{background:#EAE7F5;color:#9B8EC4}
+    .soap-content{font-size:10.5pt;margin-bottom:8px;line-height:1.6;margin-left:4px}
+    .activities{font-size:10pt;color:#555;margin-top:6px}
+    @media print{body{margin:12mm} @page{size:A4;margin:15mm}}
+  </style></head><body>
+  <h1>治療紀錄 — ${c.name}</h1>
+  <h2>${c.diagOther||c.diagnosis||''} · ${from} 至 ${to} · 共 ${notes.length} 筆</h2>
+  ${notes.map(n=>`
+  <div class="note">
+    <div class="note-header">
+      <span class="note-date">${n.date}</span>
+      <span class="note-meta">${n.therapist||''} · ${attLabel[n.attendance]||n.attendance||''}</span>
+    </div>
+    ${n.soapS?('<div><span class="soap-label soap-s">S 主觀</span><div class="soap-content">'+n.soapS.replace(/\n/g,'<br>')+'</div></div>'):''}
+    ${n.soapO?('<div><span class="soap-label soap-o">O 客觀</span><div class="soap-content">'+n.soapO.replace(/\n/g,'<br>')+'</div></div>'):''}
+    ${n.soapA?('<div><span class="soap-label soap-a">A 評估</span><div class="soap-content">'+n.soapA.replace(/\n/g,'<br>')+'</div></div>'):''}
+    ${n.soapP?('<div><span class="soap-label soap-p">P 計畫</span><div class="soap-content">'+n.soapP.replace(/\n/g,'<br>')+'</div></div>'):''}
+    ${n.activities?`<div class="activities">🎮 活動：${n.activities}</div>`:''}
+    ${n.parentNote?`<div class="activities">💬 家長聯絡：${n.parentNote}</div>`:''}
+  </div>`).join('')}
+  </body></html>`;
+ 
+  const w=window.open('','_blank');
+  if(!w){toast('❌ 請允許彈出視窗');return;}
+  w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),600);
+  toast(`✅ 已匯出 ${notes.length} 筆紀錄`);
+}
+ 
 // ══════════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════════
 // ── Cache helpers ──
 const CACHE_KEY='ot_db_cache';
 const CACHE_TTL=10*60*1000; // 10 minutes
-
+ 
 function saveCache(){
   try{
     localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),db:DB}));
   }catch(e){console.warn('Cache save failed',e);}
 }
-
+ 
 function loadCache(){
   try{
     const raw=localStorage.getItem(CACHE_KEY);
@@ -1944,7 +2107,7 @@ function loadCache(){
     return true;
   }catch(e){return false;}
 }
-
+ 
 function checkPwd(){
   const input=document.getElementById('pwd-input').value;
   const err=document.getElementById('pwd-error');
@@ -1958,12 +2121,12 @@ function checkPwd(){
     document.getElementById('pwd-input').focus();
   }
 }
-
+ 
 // Auto-focus password input on load
 window.addEventListener('load',()=>{
   document.getElementById('pwd-input')?.focus();
 });
-
+ 
 async function boot(){
   // Step 1: Show cached data instantly if available
   const hasCached=loadCache();
@@ -1997,7 +2160,7 @@ async function boot(){
     console.error(e);
   }
 }
-
+ 
 async function syncInBackground(){
   try{
     await getAccessToken();
