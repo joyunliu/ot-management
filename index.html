@@ -1332,7 +1332,7 @@ async function flushLabels(){await saveAll('settings')();}
 async function submitNote(editId){
   const data={id:editId||newId(),caseId:currentCase.id,
     date:document.getElementById('nf-date').value,
-    attendance:document.getElementById('nf-att').value,
+    attendance:document.getElementById('nf-att')?.value || 'present',
     soapS:document.getElementById('nf-soap-S')?.value||'',
     soapO:document.getElementById('nf-soap-O')?.value||'',
     soapA:document.getElementById('nf-soap-A')?.value||'',
@@ -2089,71 +2089,53 @@ async function generateSOAP(){
   const input = document.getElementById('nf-ai-input')?.value?.trim();
   const activities = document.getElementById('nf-activities')?.value?.trim();
   if(!input){ toast('❌ 請先填寫觀察文字'); return; }
- 
-  // Update button to loading state
+
   const btn = document.getElementById('ai-gen-btn');
   const icon = document.getElementById('ai-btn-icon');
   const txt = document.getElementById('ai-btn-text');
   if(btn){ btn.disabled=true; btn.style.opacity='0.7'; }
   if(icon) icon.textContent='⏳';
   if(txt) txt.textContent='AI 整理中…';
- 
+
   try {
-    const prompt = `你是一位兒童職能治療師助理。請根據以下治療紀錄文字，整理成 SOAP 格式。
- 
-活動項目：${activities||'（未填）'}
-治療紀錄：${input}
- 
-請用繁體中文，以 JSON 格式回覆，包含以下欄位：
-- S：主觀資料（家長主訴、個案主觀感受或情緒狀態）
-- O：客觀資料（治療師觀察到的具體表現、動作、行為）
-- A：評估（治療師對個案表現的臨床判斷與分析）
-- P：計畫（下次治療方向、目標調整、回家作業建議）
- 
-只回傳 JSON，不要其他說明文字。格式：{"S":"...","O":"...","A":"...","P":"..."}`;
- 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/generate-soap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+        observation: input,
+        activities: activities || '',
+        caseName: currentCase?.name || '',
+        diagnosis: currentCase?.diagOther || currentCase?.diagnosis || '',
+        age: currentCase?.dob ? age(currentCase.dob) : ''
       })
     });
- 
-    const data = await res.json();
-    const raw = data.content?.[0]?.text || '';
- 
-    // Parse JSON from response
-    let soap = {};
-    try {
-      // Extract JSON even if wrapped in backticks
-      const match = raw.match(/\{[\s\S]*\}/);
-      if(match) soap = JSON.parse(match[0]);
-    } catch(e) {
-      toast('❌ AI 回覆格式有誤，請重試');
-      return;
+
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      throw new Error(data.error || 'AI 生成失敗');
     }
- 
-    // Fill in SOAP fields
+
+    const soap = data.soap || data;
+    if(!soap || typeof soap !== 'object'){
+      throw new Error('AI 回傳格式錯誤');
+    }
+
     if(soap.S){ const el=document.getElementById('nf-soap-S'); if(el) el.value=soap.S; }
     if(soap.O){ const el=document.getElementById('nf-soap-O'); if(el) el.value=soap.O; }
     if(soap.A){ const el=document.getElementById('nf-soap-A'); if(el) el.value=soap.A; }
     if(soap.P){ const el=document.getElementById('nf-soap-P'); if(el) el.value=soap.P; }
- 
+
     toast('✅ SOAP 已自動填入，請檢查並修改');
- 
   } catch(e) {
     console.error('AI error:', e);
-    toast('❌ 連線失敗，請稍後再試');
+    toast('❌ '+(e.message || '連線失敗，請稍後再試'));
   } finally {
     if(btn){ btn.disabled=false; btn.style.opacity='1'; }
     if(icon) icon.textContent='✨';
-    if(txt) txt.textContent='重新整理';
+    if(txt) txt.textContent='重新整理 SOAP';
   }
 }
- 
+
 // ══════════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════════
