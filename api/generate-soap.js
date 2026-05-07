@@ -94,7 +94,10 @@ JSON格式：
           generationConfig: {
             temperature: 0.25,
             maxOutputTokens: 1000,
-            responseMimeType: 'application/json'
+            generationConfig: {
+  temperature: 0.25,
+  maxOutputTokens: 1000
+}
           }
         })
       }
