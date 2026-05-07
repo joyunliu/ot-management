@@ -632,12 +632,10 @@ function renderCaseDetail(){
   } else if(currentCaseTab==='notes'){
     body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button><button class="btn btn-border btn-sm" onclick="openExportNotesModal('${c.id}')">📄 匯出 Word</button></div>
     ${cN.length===0?'<div class="empty"><div class="ei">📝</div>尚無治療紀錄</div>':cN.map(n=>{
-      const att={present:'✅ 出席',absent:'❌ 缺課',late:'⏰ 遲到',makeup:'🔄 補課'}[n.attendance]||'–';
       return`<div class="card" style="border-left:4px solid ${c.color};padding:14px 16px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="display:flex;gap:6px;align-items:center">
-            <span class="tag" style="background:var(--border);color:var(--navy-l)">${n.therapist||'–'}</span>
-            <span style="font-size:11px;color:var(--muted)">${att}</span>
+            <span class="tag" style="background:var(--border);color:var(--navy-l)">${n.therapist||'OT 劉若筠'}</span>
           </div>
           <div style="display:flex;gap:5px;align-items:center">
             <span style="font-size:11px;color:var(--muted)">${n.date}</span>
@@ -1260,18 +1258,23 @@ function openNoteModal(editId=null){
   document.getElementById('mn-body').innerHTML=`
   <div class="frow">
     <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${n?.date||today}"></div>
-    <div class="fg"><label class="fl">治療師</label><input class="fi" id="nf-therapist" value="${n?.therapist||'治療師'}"></div>
+    <div class="fg" style="display:none"><input class="fi" id="nf-therapist" value="OT 劉若筠"></div>
   </div>
-  <div class="fg"><label class="fl">出席狀態</label>
-    <select class="fsel" id="nf-att">
-      <option value="present"${(!n||n?.attendance==='present')?' selected':''}>✅ 出席</option>
-      <option value="absent"${n?.attendance==='absent'?' selected':''}>❌ 缺課</option>
-      <option value="late"${n?.attendance==='late'?' selected':''}>⏰ 遲到</option>
-      <option value="makeup"${n?.attendance==='makeup'?' selected':''}>🔄 補課</option>
-    </select>
-  </div>
-  ${soapHTML}
   <div class="fg"><label class="fl">活動項目</label><input class="fi" id="nf-activities" value="${n?.activities||''}" placeholder="如：平衡板、黏土、剪紙"></div>
+  
+  <div style="background:var(--lav-l);border-radius:12px;padding:14px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:16px">✨</span>
+      <span style="font-size:13px;font-weight:700;color:var(--lav)">AI 自動整理 SOAP</span>
+    </div>
+    <div style="font-size:11px;color:var(--navy-l);margin-bottom:8px">寫下今天的觀察和想法，AI 會自動整理成 SOAP 格式</div>
+    <textarea class="fta" id="nf-ai-input" rows="4" placeholder="例：今天做了感統活動和積木，個案一開始情緒有點不穩定，需要口頭提示才能配合，後來慢慢穩定下來。精細動作比上次進步，能夠完成5塊積木堆疊。家長說在家還是容易分心…"></textarea>
+    <button onclick="generateSOAP()" id="ai-gen-btn" style="margin-top:8px;width:100%;padding:10px;background:var(--lav);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+      <span id="ai-btn-icon">✨</span> <span id="ai-btn-text">自動整理成 SOAP</span>
+    </button>
+  </div>
+ 
+  ${soapHTML}
   <div class="fg"><label class="fl">家長聯絡事項</label><input class="fi" id="nf-parent" value="${n?.parentNote||''}" placeholder="回家作業、注意事項…"></div>
   <button class="btn btn-peach btn-full" onclick="submitNote('${n?.id||''}')">📝 ${n?'儲存修改':'儲存紀錄'}</button>`;
   openModal('modal-note');
@@ -2051,27 +2054,23 @@ function doExportNotes(caseId){
     .note-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
     .note-date{font-size:13pt;font-weight:700;color:#2C3E50}
     .note-meta{font-size:10pt;color:#777}
-    .soap-label{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9pt;font-weight:700;margin-bottom:3px}
-    .soap-s{background:#D4EAD9;color:#4E8A65}
-    .soap-o{background:#EBF0FC;color:#5B78C9}
-    .soap-a{background:#FAE8D8;color:#c07040}
-    .soap-p{background:#EAE7F5;color:#9B8EC4}
-    .soap-content{font-size:10.5pt;margin-bottom:8px;line-height:1.6;margin-left:4px}
+    .soap-row{margin-bottom:8px;line-height:1.7;font-size:10.5pt}
+    .soap-key{font-weight:700;color:#000}
     .activities{font-size:10pt;color:#555;margin-top:6px}
     @media print{body{margin:12mm} @page{size:A4;margin:15mm}}
   </style></head><body>
   <h1>治療紀錄 — ${c.name}</h1>
-  <h2>${c.diagOther||c.diagnosis||''} · ${from} 至 ${to} · 共 ${notes.length} 筆</h2>
+  <h2>${from} 至 ${to} · 共 ${notes.length} 筆</h2>
   ${notes.map(n=>`
   <div class="note">
     <div class="note-header">
       <span class="note-date">${n.date}</span>
       <span class="note-meta">${n.therapist||''} · ${attLabel[n.attendance]||n.attendance||''}</span>
     </div>
-    ${n.soapS?('<div><span class="soap-label soap-s">S 主觀</span><div class="soap-content">'+n.soapS.replace(/\n/g,'<br>')+'</div></div>'):''}
-    ${n.soapO?('<div><span class="soap-label soap-o">O 客觀</span><div class="soap-content">'+n.soapO.replace(/\n/g,'<br>')+'</div></div>'):''}
-    ${n.soapA?('<div><span class="soap-label soap-a">A 評估</span><div class="soap-content">'+n.soapA.replace(/\n/g,'<br>')+'</div></div>'):''}
-    ${n.soapP?('<div><span class="soap-label soap-p">P 計畫</span><div class="soap-content">'+n.soapP.replace(/\n/g,'<br>')+'</div></div>'):''}
+    ${n.soapS?('<div class="soap-row"><span class="soap-key">S：</span>'+n.soapS.replace(/\n/g,'<br>')+'</div>'):''}
+    ${n.soapO?('<div class="soap-row"><span class="soap-key">O：</span>'+n.soapO.replace(/\n/g,'<br>')+'</div>'):''}
+    ${n.soapA?('<div class="soap-row"><span class="soap-key">A：</span>'+n.soapA.replace(/\n/g,'<br>')+'</div>'):''}
+    ${n.soapP?('<div class="soap-row"><span class="soap-key">P：</span>'+n.soapP.replace(/\n/g,'<br>')+'</div>'):''}
     ${n.activities?`<div class="activities">🎮 活動：${n.activities}</div>`:''}
     ${n.parentNote?`<div class="activities">💬 家長聯絡：${n.parentNote}</div>`:''}
   </div>`).join('')}
@@ -2082,6 +2081,77 @@ function doExportNotes(caseId){
   w.document.write(html);w.document.close();
   setTimeout(()=>w.print(),600);
   toast(`✅ 已匯出 ${notes.length} 筆紀錄`);
+}
+ 
+ 
+// ── AI SOAP Generator ──
+async function generateSOAP(){
+  const input = document.getElementById('nf-ai-input')?.value?.trim();
+  const activities = document.getElementById('nf-activities')?.value?.trim();
+  if(!input){ toast('❌ 請先填寫觀察文字'); return; }
+ 
+  // Update button to loading state
+  const btn = document.getElementById('ai-gen-btn');
+  const icon = document.getElementById('ai-btn-icon');
+  const txt = document.getElementById('ai-btn-text');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.7'; }
+  if(icon) icon.textContent='⏳';
+  if(txt) txt.textContent='AI 整理中…';
+ 
+  try {
+    const prompt = `你是一位兒童職能治療師助理。請根據以下治療紀錄文字，整理成 SOAP 格式。
+ 
+活動項目：${activities||'（未填）'}
+治療紀錄：${input}
+ 
+請用繁體中文，以 JSON 格式回覆，包含以下欄位：
+- S：主觀資料（家長主訴、個案主觀感受或情緒狀態）
+- O：客觀資料（治療師觀察到的具體表現、動作、行為）
+- A：評估（治療師對個案表現的臨床判斷與分析）
+- P：計畫（下次治療方向、目標調整、回家作業建議）
+ 
+只回傳 JSON，不要其他說明文字。格式：{"S":"...","O":"...","A":"...","P":"..."}`;
+ 
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+ 
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '';
+ 
+    // Parse JSON from response
+    let soap = {};
+    try {
+      // Extract JSON even if wrapped in backticks
+      const match = raw.match(/\{[\s\S]*\}/);
+      if(match) soap = JSON.parse(match[0]);
+    } catch(e) {
+      toast('❌ AI 回覆格式有誤，請重試');
+      return;
+    }
+ 
+    // Fill in SOAP fields
+    if(soap.S){ const el=document.getElementById('nf-soap-S'); if(el) el.value=soap.S; }
+    if(soap.O){ const el=document.getElementById('nf-soap-O'); if(el) el.value=soap.O; }
+    if(soap.A){ const el=document.getElementById('nf-soap-A'); if(el) el.value=soap.A; }
+    if(soap.P){ const el=document.getElementById('nf-soap-P'); if(el) el.value=soap.P; }
+ 
+    toast('✅ SOAP 已自動填入，請檢查並修改');
+ 
+  } catch(e) {
+    console.error('AI error:', e);
+    toast('❌ 連線失敗，請稍後再試');
+  } finally {
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+    if(icon) icon.textContent='✨';
+    if(txt) txt.textContent='重新整理';
+  }
 }
  
 // ══════════════════════════════════════════════════
@@ -2175,3 +2245,4 @@ boot();
 </script>
 </body>
 </html>
+ 
