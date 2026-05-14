@@ -525,7 +525,7 @@ function renderDashboard(){
   <div class="card">
     <div class="stitle">📌 近期預約</div>
     ${upcoming.length===0?'<div class="empty"><div class="ei">📭</div>暫無預約</div>':upcoming.map(a=>`
-    <div class="card-row">
+    <div class="card-row" style="cursor:pointer" onclick="navToCase('${a.caseId}')">
       <div class="av" style="width:36px;height:36px;background:${caseColor(a.caseId)};font-size:14px">${caseName(a.caseId)[0]||'?'}</div>
       <div style="flex:1"><div style="font-weight:600;font-size:13px">${caseName(a.caseId)}</div><div style="font-size:11px;color:var(--muted)">${typeLabel(a.type,a.groupSize)} · ${a.note||'–'}</div></div>
       <div style="text-align:right"><div style="font-size:12px;font-weight:600;color:var(--navy-l)">${a.date.slice(5)}</div><div style="font-size:11px;color:var(--muted)">${a.time}</div></div>
@@ -599,7 +599,7 @@ function renderCaseDetail(){
   const cM=DB.milestones.filter(m=>m.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
   const totalInc=cA.filter(a=>a.status==='done').reduce((s,a)=>s+a.fee,0);
  
-  const TABS=[['info','資料'],['goals','目標'],['notes','紀錄'],['assess','評估'],['initial','初評報告'],['milestone','里程碑'],['appts','預約']];
+  const TABS=[['info','資料'],['appts','預約'],['goals','目標'],['notes','紀錄'],['assess','評估'],['initial','初評報告'],['milestone','里程碑']];
   let body='';
  
   if(currentCaseTab==='info'){
@@ -632,6 +632,7 @@ function renderCaseDetail(){
   } else if(currentCaseTab==='notes'){
     body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button><button class="btn btn-border btn-sm" onclick="openExportNotesModal('${c.id}')">📄 匯出 Word</button></div>
     ${cN.length===0?'<div class="empty"><div class="ei">📝</div>尚無治療紀錄</div>':cN.map(n=>{
+      const records=parseActivityRecords(n);
       return`<div class="card" style="border-left:4px solid ${c.color};padding:14px 16px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="display:flex;gap:6px;align-items:center">
@@ -643,12 +644,13 @@ function renderCaseDetail(){
             <button class="btn btn-red btn-sm" onclick="deleteNote('${n.id}')">🗑</button>
           </div>
         </div>
-        ${n.soapS?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--sage-d);background:var(--sage-l);padding:2px 7px;border-radius:10px">S</span> <span style="font-size:13px">${n.soapS}</span></div>`:''}
-        ${n.soapO?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:#5B78C9;background:#EBF0FC;padding:2px 7px;border-radius:10px">O</span> <span style="font-size:13px">${n.soapO}</span></div>`:''}
-        ${n.soapA?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--peach);background:var(--peach-l);padding:2px 7px;border-radius:10px">A</span> <span style="font-size:13px">${n.soapA}</span></div>`:''}
-        ${n.soapP?`<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:var(--lav);background:var(--lav-l);padding:2px 7px;border-radius:10px">P</span> <span style="font-size:13px">${n.soapP}</span></div>`:''}
-        ${n.activities?`<div style="font-size:12px;color:var(--navy-l);margin-top:4px">🎮 ${n.activities}</div>`:''}
-        ${n.parentNote?`<div style="font-size:12px;color:var(--gold);margin-top:4px">💬 ${n.parentNote}</div>`:''}
+        ${getNoteGoals(n)?`<div style="font-size:12px;color:var(--navy-l);background:var(--sage-l);padding:8px 10px;border-radius:10px;margin-bottom:8px"><strong>治療目標：</strong><br>${textToBr(getNoteGoals(n))}</div>`:''}
+        ${records.map((r,i)=>`<div style="background:var(--bg);border-radius:10px;padding:10px;margin-top:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:5px">本次活動 ${i+1}：${escapeHTML(r.activity||'')}</div>
+          ${r.performance?`<div style="font-size:12px;line-height:1.6;margin-bottom:4px"><strong>執行狀況：</strong>${textToBr(r.performance)}</div>`:''}
+          ${r.plan?`<div style="font-size:12px;line-height:1.6"><strong>治療計劃：</strong>${textToBr(r.plan)}</div>`:''}
+        </div>`).join('')}
+        ${n.parentNote?`<div style="font-size:12px;color:var(--gold);margin-top:8px">💬 ${escapeHTML(n.parentNote)}</div>`:''}
       </div>`;}).join('')}`;
   } else if(currentCaseTab==='assess'){
     body=`<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="openAssessModal()">+ 新增評估</button></div>
@@ -1230,56 +1232,109 @@ async function saveSoapLabels(labels){
   await saveAll('settings')();
 }
  
+
+function getActiveGoalText(caseId){
+  return DB.goals
+    .filter(g=>g.caseId===caseId && g.status!=='done')
+    .map((g,i)=>`${i+1}.【${g.area||'目標'}】${g.goal}${g.progress?`（目前${g.progress}%）`:''}`)
+    .join('\n');
+}
+function parseActivityRecords(note){
+  if(!note)return[];
+  try{
+    const arr=JSON.parse(note.soapO||'[]');
+    if(Array.isArray(arr))return arr;
+  }catch(e){}
+  // 舊版 SOAP 紀錄轉成單一活動顯示，避免舊資料看不到
+  if(note.activities||note.soapO||note.soapA||note.soapP){
+    return [{
+      activity:note.activities||'治療活動',
+      performance:[note.soapO,note.soapA].filter(Boolean).join('\n'),
+      plan:note.soapP||''
+    }];
+  }
+  return[];
+}
+function getNoteGoals(note){
+  return note?.soapS||'';
+}
+function escapeHTML(str=''){
+  return String(str).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+}
+function textToBr(str=''){
+  return escapeHTML(str).replace(/\n/g,'<br>');
+}
+function renumberActivityBlocks(){
+  document.querySelectorAll('#activity-records-wrap .activity-record-block').forEach((block,i)=>{
+    const title=block.querySelector('.activity-title');
+    if(title)title.textContent=`本次活動 ${i+1}`;
+  });
+}
+function addTreatmentActivity(data={}){
+  const wrap=document.getElementById('activity-records-wrap');
+  if(!wrap)return;
+  const block=document.createElement('div');
+  block.className='activity-record-block';
+  block.style.cssText='background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px';
+  block.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="activity-title" style="font-size:13px;font-weight:700;color:var(--navy)">本次活動</div>
+      <button type="button" onclick="this.closest('.activity-record-block').remove();renumberActivityBlocks();" style="background:var(--red-l);color:var(--red);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer">刪除</button>
+    </div>
+    <div class="fg"><label class="fl">本次活動</label><textarea class="fta note-activity" rows="2" placeholder="例如：桌遊輪流、精細操作、感統活動、生活自理練習" oninput="autoFillTreatmentActivity(this)">${data.activity||''}</textarea></div>
+    <div class="fg"><label class="fl">執行狀況</label><textarea class="fta note-performance" rows="3" placeholder="輸入活動後會自動帶出，可再手動修改">${data.performance||''}</textarea></div>
+    <div class="fg"><label class="fl">治療計劃</label><textarea class="fta note-plan" rows="3" placeholder="輸入活動後會自動帶出，可再手動修改">${data.plan||''}</textarea></div>
+  `;
+  wrap.appendChild(block);
+  renumberActivityBlocks();
+}
+function autoFillTreatmentActivity(activityInput){
+  const block=activityInput.closest('.activity-record-block');
+  const performance=block.querySelector('.note-performance');
+  const plan=block.querySelector('.note-plan');
+  const activity=activityInput.value.trim();
+  if(!activity){performance.value='';plan.value='';return;}
+  if(!performance.value.trim()){
+    performance.value=`個案可在引導下參與「${activity}」，過程中觀察其注意力、指令理解、動作表現與情緒行為反應。依任務難度不同，需口語提示、示範或分段協助完成。`;
+  }
+  if(!plan.value.trim()){
+    plan.value=`下次將延續「${activity}」相關能力訓練，並依個案表現調整活動難度。治療中將持續觀察其參與度、等待能力、指令理解與獨立完成度。`;
+  }
+}
+function collectTreatmentActivities(){
+  return Array.from(document.querySelectorAll('#activity-records-wrap .activity-record-block')).map(block=>({
+    activity:block.querySelector('.note-activity')?.value.trim()||'',
+    performance:block.querySelector('.note-performance')?.value.trim()||'',
+    plan:block.querySelector('.note-plan')?.value.trim()||''
+  })).filter(x=>x.activity||x.performance||x.plan);
+}
 function openNoteModal(editId=null){
   window._editNoteId=editId||null;
   const n=editId?DB.notes.find(x=>x.id===editId):null;
-  document.getElementById('mn-title').textContent=n?'編輯紀錄':(currentCase?.name||'')+' · 新增紀錄';
-  const labels=getSoapLabels();
+  document.getElementById('mn-title').textContent=n?'編輯治療紀錄':(currentCase?.name||'')+' · 新增治療紀錄';
   const today=new Date().toISOString().slice(0,10);
-  const SOAP_META={
-    S:{title:'S｜主觀',color:'var(--sage-d)',bg:'var(--sage-l)',ph:'家長主訴、個案今日狀態…',val:n?.soapS||''},
-    O:{title:'O｜客觀',color:'#5B78C9',bg:'#EBF0FC',ph:'觀察到的客觀表現…',val:n?.soapO||''},
-    A:{title:'A｜評估',color:'var(--peach)',bg:'var(--peach-l)',ph:'治療師評估與分析…',val:n?.soapA||''},
-    P:{title:'P｜計畫',color:'var(--lav)',bg:'var(--lav-l)',ph:'下次計畫、目標調整…',val:n?.soapP||''}
-  };
-  let soapHTML='';
-  ['S','O','A','P'].forEach(k=>{
-    const m=SOAP_META[k], kL=labels[k]||[];
-    soapHTML+=`<div class="fg" style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:700;color:${m.color};background:${m.bg};padding:3px 10px;border-radius:20px">${m.title}</span>
-        <button onclick="openLabelMgr('${k}')" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer">⚙️ 標籤</button>
-      </div>
-      <div class="chip-group" id="chips-${k}">${kL.map(l=>`<button class="chip" onclick="appendChip('${k}','${l.replace(/'/g,"\\x27")}')">${l}</button>`).join('')}</div>
-      <div id="label-mgr-wrap-${k}"></div>
-      <textarea class="fta" id="nf-soap-${k}" placeholder="${m.ph}" rows="3">${m.val}</textarea>
-    </div>`;
-  });
+  const goals=n?getNoteGoals(n):getActiveGoalText(currentCase?.id);
+  const records=n?parseActivityRecords(n):[];
   document.getElementById('mn-body').innerHTML=`
   <div class="frow">
     <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${n?.date||today}"></div>
-    <div class="fg" style="display:none"><input class="fi" id="nf-therapist" value="OT 劉若筠"></div>
+    <div class="fg" style="display:none"><input class="fi" id="nf-therapist" value="${n?.therapist||'OT 劉若筠'}"></div>
   </div>
-  <div class="fg"><label class="fl">活動項目</label><input class="fi" id="nf-activities" value="${n?.activities||''}" placeholder="如：平衡板、黏土、剪紙"></div>
-  
-  <div style="background:var(--lav-l);border-radius:12px;padding:14px;margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-      <span style="font-size:16px">✨</span>
-      <span style="font-size:13px;font-weight:700;color:var(--lav)">AI 自動整理 SOAP</span>
-    </div>
-    <div style="font-size:11px;color:var(--navy-l);margin-bottom:8px">寫下今天的觀察和想法，AI 會自動整理成 SOAP 格式</div>
-    <textarea class="fta" id="nf-ai-input" rows="4" placeholder="例：今天做了感統活動和積木，個案一開始情緒有點不穩定，需要口頭提示才能配合，後來慢慢穩定下來。精細動作比上次進步，能夠完成5塊積木堆疊。家長說在家還是容易分心…"></textarea>
-    <button onclick="generateSOAP()" id="ai-gen-btn" style="margin-top:8px;width:100%;padding:10px;background:var(--lav);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
-      <span id="ai-btn-icon">✨</span> <span id="ai-btn-text">自動整理成 SOAP</span>
-    </button>
+  <div class="fg"><label class="fl">治療目標（從目標自動匯入，可手動修改）</label><textarea class="fta" id="nf-goals" rows="4" placeholder="此處會自動帶入目前進行中的治療目標">${goals||''}</textarea></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy)">本次活動紀錄</div>
+    <button type="button" class="btn btn-peach btn-sm" onclick="addTreatmentActivity()">＋ 新增本次活動</button>
   </div>
- 
-  ${soapHTML}
+  <div id="activity-records-wrap"></div>
   <div class="fg"><label class="fl">家長聯絡事項</label><input class="fi" id="nf-parent" value="${n?.parentNote||''}" placeholder="回家作業、注意事項…"></div>
-  <button class="btn btn-peach btn-full" onclick="submitNote('${n?.id||''}')">📝 ${n?'儲存修改':'儲存紀錄'}</button>`;
+  <div class="btn-row" style="margin-top:8px">
+    <button class="btn btn-peach btn-full" onclick="submitNote('${n?.id||''}')">📝 ${n?'儲存修改':'儲存紀錄'}</button>
+  </div>`;
   openModal('modal-note');
+  if(records.length){records.forEach(r=>addTreatmentActivity(r));}
+  else{addTreatmentActivity();}
 }
- 
+
 function appendChip(k,val){
   const ta=document.getElementById('nf-soap-'+k);if(!ta)return;
   ta.value+=(ta.value&&!ta.value.endsWith('\n')?'，':'')+val;ta.focus();
@@ -1330,21 +1385,25 @@ function updateLabelImm(k,i,val){
 async function flushLabels(){await saveAll('settings')();}
  
 async function submitNote(editId){
+  const records=collectTreatmentActivities();
+  if(!records.length){toast('❌ 請至少新增一個本次活動');return;}
+  const firstActivities=records.map(r=>r.activity).filter(Boolean).join('、');
   const data={id:editId||newId(),caseId:currentCase.id,
     date:document.getElementById('nf-date').value,
-    attendance:document.getElementById('nf-att')?.value || 'present',
-    soapS:document.getElementById('nf-soap-S')?.value||'',
-    soapO:document.getElementById('nf-soap-O')?.value||'',
-    soapA:document.getElementById('nf-soap-A')?.value||'',
-    soapP:document.getElementById('nf-soap-P')?.value||'',
-    activities:document.getElementById('nf-activities').value,
+    attendance:'present',
+    // 新版格式：soapS 儲存治療目標；soapO 儲存活動 JSON，保留原本 Google Sheet 欄位相容性
+    soapS:document.getElementById('nf-goals')?.value||'',
+    soapO:JSON.stringify(records),
+    soapA:'',
+    soapP:'',
+    activities:firstActivities,
     parentNote:document.getElementById('nf-parent').value,
     therapist:document.getElementById('nf-therapist').value};
   if(editId){const idx=DB.notes.findIndex(n=>n.id===editId);DB.notes[idx]=data;}
   else DB.notes.push(data);
-  closeModal('modal-note');toast('💾 儲存中…');await saveAll('notes')();toast('✅ 紀錄已儲存');render();
+  closeModal('modal-note');toast('💾 儲存中…');await saveAll('notes')();saveCache();toast('✅ 紀錄已儲存');render();
 }
- 
+
 function editNote(id){openNoteModal(id);}
 function deleteNote(id){confirmDialog('確定要刪除這筆治療紀錄？',async()=>{DB.notes=DB.notes.filter(n=>n.id!==id);toast('🗑 刪除中…');await saveAll('notes')();saveCache();toast('✅ 已刪除');render();});}
  
@@ -2042,46 +2101,51 @@ function doExportNotes(caseId){
     .sort((a,b)=>a.date.localeCompare(b.date));
   if(!notes.length){toast('所選日期範圍內沒有紀錄');return;}
   document.querySelectorAll('div[style*="position:fixed"]').forEach(el=>{if(el.id!=='pwd-screen'&&el.id!=='toast'&&el.id!=='loading')el.remove();});
- 
-  const attLabel={present:'出席',absent:'缺課',late:'遲到',makeup:'補課'};
+
   const html=`<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">
   <title>治療紀錄 - ${c.name}</title>
   <style>
     body{font-family:'微軟正黑體','Microsoft JhengHei',Arial,sans-serif;font-size:11pt;margin:20mm;color:#000}
-    h1{font-size:14pt;margin-bottom:4px}
-    h2{font-size:11pt;color:#555;margin-top:0;margin-bottom:20px;font-weight:400}
-    .note{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #ddd;page-break-inside:avoid}
-    .note-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-    .note-date{font-size:13pt;font-weight:700;color:#2C3E50}
-    .note-meta{font-size:10pt;color:#777}
-    .soap-row{margin-bottom:8px;line-height:1.7;font-size:10.5pt}
-    .soap-key{font-weight:700;color:#000}
-    .activities{font-size:10pt;color:#555;margin-top:6px}
+    h1{text-align:center;font-size:16pt;margin-bottom:4px}
+    h2{text-align:center;font-size:10.5pt;color:#555;margin-top:0;margin-bottom:18px;font-weight:400}
+    .note{margin-bottom:18px;page-break-inside:avoid}
+    .date{font-size:13pt;font-weight:700;color:#2C3E50;margin-bottom:8px;border-bottom:1px solid #999;padding-bottom:4px}
+    .goals{background:#f3f7f3;border:1px solid #d8e8d8;padding:8px 10px;margin-bottom:8px;line-height:1.6}
+    .activity{border:1px solid #ddd;padding:8px 10px;margin:8px 0;border-radius:6px}
+    .activity-title{font-weight:700;margin-bottom:5px}
+    .row{line-height:1.7;margin:4px 0}
+    .label{font-weight:700}
     @media print{body{margin:12mm} @page{size:A4;margin:15mm}}
   </style></head><body>
   <h1>治療紀錄 — ${c.name}</h1>
   <h2>${from} 至 ${to} · 共 ${notes.length} 筆</h2>
-  ${notes.map(n=>`
-  <div class="note">
-    <div class="note-header">
-      <span class="note-date">${n.date}</span>
-      <span class="note-meta">${n.therapist||''} · ${attLabel[n.attendance]||n.attendance||''}</span>
-    </div>
-    ${n.soapS?('<div class="soap-row"><span class="soap-key">S：</span>'+n.soapS.replace(/\n/g,'<br>')+'</div>'):''}
-    ${n.soapO?('<div class="soap-row"><span class="soap-key">O：</span>'+n.soapO.replace(/\n/g,'<br>')+'</div>'):''}
-    ${n.soapA?('<div class="soap-row"><span class="soap-key">A：</span>'+n.soapA.replace(/\n/g,'<br>')+'</div>'):''}
-    ${n.soapP?('<div class="soap-row"><span class="soap-key">P：</span>'+n.soapP.replace(/\n/g,'<br>')+'</div>'):''}
-    ${n.activities?`<div class="activities">🎮 活動：${n.activities}</div>`:''}
-    ${n.parentNote?`<div class="activities">💬 家長聯絡：${n.parentNote}</div>`:''}
-  </div>`).join('')}
+  ${notes.map(n=>{
+    const records=parseActivityRecords(n);
+    return `<div class="note">
+      <div class="date">${n.date}　${n.therapist||''}</div>
+      ${getNoteGoals(n)?`<div class="goals"><span class="label">治療目標：</span><br>${textToBr(getNoteGoals(n))}</div>`:''}
+      ${records.map((r,i)=>`<div class="activity">
+        <div class="activity-title">本次活動 ${i+1}：${textToBr(r.activity||'')}</div>
+        ${r.performance?`<div class="row"><span class="label">執行狀況：</span>${textToBr(r.performance)}</div>`:''}
+        ${r.plan?`<div class="row"><span class="label">治療計劃：</span>${textToBr(r.plan)}</div>`:''}
+      </div>`).join('')}
+      ${n.parentNote?`<div class="row"><span class="label">家長聯絡：</span>${textToBr(n.parentNote)}</div>`:''}
+    </div>`;
+  }).join('')}
   </body></html>`;
- 
-  const w=window.open('','_blank');
-  if(!w){toast('❌ 請允許彈出視窗');return;}
-  w.document.write(html);w.document.close();
-  setTimeout(()=>w.print(),600);
-  toast(`✅ 已匯出 ${notes.length} 筆紀錄`);
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `治療紀錄_${c.name}_${from||'起'}_${to||'迄'}.doc`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  toast(`✅ 已匯出 ${notes.length} 筆 Word 紀錄`);
 }
+
  
  
 // ── AI SOAP Generator ──
