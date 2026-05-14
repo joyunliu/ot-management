@@ -633,24 +633,36 @@ function renderCaseDetail(){
     body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button><button class="btn btn-border btn-sm" onclick="openExportNotesModal('${c.id}')">📄 匯出 Word</button></div>
     ${cN.length===0?'<div class="empty"><div class="ei">📝</div>尚無治療紀錄</div>':cN.map(n=>{
       const records=parseActivityRecords(n);
+      const activityNames=records.map((r,i)=>r.activity?escapeHTML(r.activity):`未命名活動 ${i+1}`);
       return`<div class="card" style="border-left:4px solid ${c.color};padding:14px 16px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="display:flex;gap:6px;align-items:center">
-            <span class="tag" style="background:var(--border);color:var(--navy-l)">${n.therapist||'OT 劉若筠'}</span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+              <span style="font-size:13px;font-weight:700;color:var(--navy)">${n.date}</span>
+              <span class="tag" style="background:var(--border);color:var(--navy-l)">${n.therapist||'OT 劉若筠'}</span>
+              <span class="tag" style="background:var(--sage-l);color:var(--sage-d)">${records.length} 個活動</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${activityNames.length?activityNames.map((name,i)=>`<span style="font-size:12px;background:var(--bg);color:var(--navy);border-radius:999px;padding:5px 10px;font-weight:600">${i+1}. ${name}</span>`).join(''):'<span style="font-size:12px;color:var(--muted)">尚未填寫活動</span>'}
+            </div>
           </div>
-          <div style="display:flex;gap:5px;align-items:center">
-            <span style="font-size:11px;color:var(--muted)">${n.date}</span>
+          <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
             <button class="btn btn-border btn-sm" onclick="editNote('${n.id}')">✏️</button>
             <button class="btn btn-red btn-sm" onclick="deleteNote('${n.id}')">🗑</button>
           </div>
         </div>
-        ${getNoteGoals(n)?`<div style="font-size:12px;color:var(--navy-l);background:var(--sage-l);padding:8px 10px;border-radius:10px;margin-bottom:8px"><strong>治療目標：</strong><br>${textToBr(getNoteGoals(n))}</div>`:''}
-        ${records.map((r,i)=>`<div style="background:var(--bg);border-radius:10px;padding:10px;margin-top:8px">
-          <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:5px">本次活動 ${i+1}：${escapeHTML(r.activity||'')}</div>
-          ${r.performance?`<div style="font-size:12px;line-height:1.6;margin-bottom:4px"><strong>執行狀況：</strong>${textToBr(r.performance)}</div>`:''}
-          ${r.plan?`<div style="font-size:12px;line-height:1.6"><strong>治療計劃：</strong>${textToBr(r.plan)}</div>`:''}
-        </div>`).join('')}
-        ${n.parentNote?`<div style="font-size:12px;color:var(--gold);margin-top:8px">💬 ${escapeHTML(n.parentNote)}</div>`:''}
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--sage-d);background:var(--sage-l);border-radius:10px;padding:8px 10px;list-style:none">查看詳細紀錄</summary>
+          <div style="margin-top:10px">
+            ${getNoteGoals(n)?`<div style="font-size:12px;color:var(--navy-l);background:var(--sage-l);padding:8px 10px;border-radius:10px;margin-bottom:8px"><strong>治療目標：</strong><br>${textToBr(getNoteGoals(n))}</div>`:''}
+            ${records.map((r,i)=>`<div style="background:var(--bg);border-radius:10px;padding:10px;margin-top:8px">
+              <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:5px">本次活動 ${i+1}：${escapeHTML(r.activity||'')}</div>
+              ${r.performance?`<div style="font-size:12px;line-height:1.6;margin-bottom:4px"><strong>執行狀況：</strong>${textToBr(r.performance)}</div>`:''}
+              ${r.plan?`<div style="font-size:12px;line-height:1.6"><strong>治療計劃：</strong>${textToBr(r.plan)}</div>`:''}
+            </div>`).join('')}
+            ${n.parentNote?`<div style="font-size:12px;color:var(--gold);margin-top:8px">💬 ${escapeHTML(n.parentNote)}</div>`:''}
+          </div>
+        </details>
       </div>`;}).join('')}`;
   } else if(currentCaseTab==='assess'){
     body=`<div class="btn-row"><button class="btn btn-teal btn-sm" onclick="openAssessModal()">+ 新增評估</button></div>
