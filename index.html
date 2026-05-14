@@ -208,6 +208,8 @@ body{font-family:var(--fb);background:var(--bg);color:var(--navy);height:100dvh;
 // CONFIG
 // ══════════════════════════════════════════════════
 const SHEET_ID='10PwkygvatxXnJPMTGHGi0OxQqhhZuO1PiV0eK296OLY';
+const BACKUP_API_URL='https://script.google.com/macros/s/AKfycbwQ7bqA7qRqBhEeC00nm7IQWid7inaqMVbh4wPQnanu1LBtwYy_dvQSMwai6ywMlkyu/exec';
+const TRASH_SHEET_NAME='刪除備份';
 const SA_EMAIL='ot-manager@ot-management-494211.iam.gserviceaccount.com';
 const SA_KEY=`-----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCumfY50kwS+6ql
@@ -419,6 +421,47 @@ async function sheetGet(range){const t=await getAccessToken();const r=await fetc
 async function sheetSet(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
 async function sheetAppend(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
 async function sheetClear(range){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,{method:'POST',headers:{Authorization:`Bearer ${t}`}});}
+async function sheetBatchUpdate(requests){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({requests})});}
+async function ensureTrashSheet(){
+  const t=await getAccessToken();
+  const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
+  const data=await res.json();
+  const titles=(data.sheets||[]).map(s=>s.properties.title);
+  if(!titles.includes(TRASH_SHEET_NAME)){
+    await sheetBatchUpdate([{addSheet:{properties:{title:TRASH_SHEET_NAME}}}]);
+    await sheetAppend(`${TRASH_SHEET_NAME}!A1`, [[
+      '刪除時間','類型','紀錄ID','個案ID','個案姓名','日期','治療師','治療目標','活動摘要','活動JSON','家長聯絡','原始JSON'
+    ]]);
+  }
+}
+async function backupDeletedNoteToTrash(note){
+  if(!note)return;
+  try{
+    await ensureTrashSheet();
+    const records=parseActivityRecords(note);
+    const activitiesSummary=records.map((r,i)=>`${i+1}. ${r.activity||'未命名活動'}`).join('；') || note.activities || '';
+    const row=[
+      new Date().toLocaleString('zh-TW'),
+      '治療紀錄',
+      note.id||'',
+      note.caseId||'',
+      caseName(note.caseId)||'',
+      note.date||'',
+      note.therapist||'',
+      note.soapS||'',
+      activitiesSummary,
+      JSON.stringify(records),
+      note.parentNote||'',
+      JSON.stringify(note)
+    ];
+    await sheetAppend(`${TRASH_SHEET_NAME}!A2`, [row]);
+  }catch(e){
+    console.warn('Trash backup failed',e);
+    try{
+      await fetch(BACKUP_API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type:'deleted_note_backup',note,deletedAt:new Date().toISOString()})});
+    }catch(err){console.warn('Backup API failed',err);}
+  }
+}
  
 async function initSheets(){
   // Just verify connection works - sheets should already be created manually
@@ -1487,7 +1530,8 @@ function deleteNote(id){
     saveCache();
     render();
     showUndoNoteToast('已刪除治療紀錄');
-    toast('🗑 已刪除，可按「復原」找回');
+    toast('🗑 已刪除，可按「復原」找回；備份中…');
+    await backupDeletedNoteToTrash(removed);
     await saveAll('notes')();
     undoNoteTimer = setTimeout(()=>{
       lastDeletedNote = null;
