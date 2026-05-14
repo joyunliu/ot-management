@@ -338,7 +338,65 @@ let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=nul
 let incomeYear=new Date().getFullYear(), incomeMonth=new Date().getMonth();
 let accessToken=null, tokenExpiry=0;
 let soapActiveTab='S';
+let lastDeletedNote = null;
+let undoNoteTimer = null;
  
+
+// ══════════════════════════════════════════════════
+// SAFE DELETE / UNDO HELPERS
+// ══════════════════════════════════════════════════
+function normalizeNoteIds(){
+  const seen = new Set();
+  let changed = false;
+  if(!Array.isArray(DB.notes)) return false;
+  DB.notes.forEach((n, i)=>{
+    const original = n.id;
+    if(!n.id || seen.has(String(n.id))){
+      n.id = `note_${Date.now().toString(36)}_${i}_${Math.random().toString(36).slice(2,8)}`;
+      changed = true;
+    }
+    seen.add(String(n.id));
+  });
+  return changed;
+}
+
+function showUndoNoteToast(message='已刪除紀錄'){
+  let el = document.getElementById('undo-note-toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'undo-note-toast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:calc(var(--bot) + env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:12px;z-index:10000;box-shadow:0 6px 20px rgba(0,0,0,.18);font-size:13px;font-weight:700;max-width:calc(100vw - 32px);white-space:nowrap';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<span>${message}</span><button onclick="undoDeleteNote()" style="border:none;background:var(--sage);color:#fff;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">復原</button>`;
+  el.style.display = 'flex';
+}
+
+function hideUndoNoteToast(){
+  const el = document.getElementById('undo-note-toast');
+  if(el) el.style.display = 'none';
+}
+
+async function undoDeleteNote(){
+  if(!lastDeletedNote){
+    hideUndoNoteToast();
+    return;
+  }
+  const backup = lastDeletedNote;
+  if(!Array.isArray(DB.notes)) DB.notes = [];
+  const insertIndex = Math.min(Math.max(backup.index, 0), DB.notes.length);
+  DB.notes.splice(insertIndex, 0, backup.note);
+  lastDeletedNote = null;
+  clearTimeout(undoNoteTimer);
+  hideUndoNoteToast();
+  normalizeNoteIds();
+  saveCache();
+  toast('↩️ 已復原紀錄，儲存中…');
+  await saveAll('notes')();
+  toast('✅ 紀錄已復原');
+  render();
+}
+
 // ══════════════════════════════════════════════════
 // JWT AUTH
 // ══════════════════════════════════════════════════
@@ -391,6 +449,7 @@ async function loadAll(){
   DB.appts=appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'}));
   DB.goals=goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'}));
   DB.notes=notes.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',attendance:r[3]||'present',soapS:r[4]||'',soapO:r[5]||'',soapA:r[6]||'',soapP:r[7]||'',activities:r[8]||'',parentNote:r[9]||'',therapist:r[10]||''}));
+  normalizeNoteIds();
   DB.assessments=assessments.map(r=>({id:r[0],caseId:r[1],tool:r[2]||'',date:r[3]||'',scores:r[4]||'',percentiles:r[5]||'',subtestResults:r[6]||'',notes:r[7]||'',recommendations:r[8]||''}));
   DB.milestones=milestones.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',ageGroup:r[3]||'',gross:r[4]||'',fine:r[5]||'',cognitive:r[6]||'',social:r[7]||'',selfcare:r[8]||'',notes:r[9]||''}));
   DB.initialAssessments=(initialAssessments||[]).map(r=>({id:r[0],caseId:r[1],data:r[2]||'{}'}));
@@ -1417,7 +1476,25 @@ async function submitNote(editId){
 }
 
 function editNote(id){openNoteModal(id);}
-function deleteNote(id){confirmDialog('確定要刪除這筆治療紀錄？',async()=>{DB.notes=DB.notes.filter(n=>n.id!==id);toast('🗑 刪除中…');await saveAll('notes')();saveCache();toast('✅ 已刪除');render();});}
+function deleteNote(id){
+  confirmDialog('確定要刪除這筆治療紀錄？刪除後 10 秒內可復原。', async()=>{
+    normalizeNoteIds();
+    const idx = DB.notes.findIndex(n=>String(n.id)===String(id));
+    if(idx<0){toast('❌ 找不到這筆紀錄');return;}
+    const removed = DB.notes.splice(idx,1)[0];
+    lastDeletedNote = { note: removed, index: idx };
+    clearTimeout(undoNoteTimer);
+    saveCache();
+    render();
+    showUndoNoteToast('已刪除治療紀錄');
+    toast('🗑 已刪除，可按「復原」找回');
+    await saveAll('notes')();
+    undoNoteTimer = setTimeout(()=>{
+      lastDeletedNote = null;
+      hideUndoNoteToast();
+    },10000);
+  });
+}
  
 // ── Assessment ──
 // Assessment subtests by tool
@@ -2232,6 +2309,7 @@ function loadCache(){
     const {ts,db}=JSON.parse(raw);
     if(Date.now()-ts>CACHE_TTL)return false;
     DB=db;
+    normalizeNoteIds();
     return true;
   }catch(e){return false;}
 }
