@@ -580,7 +580,11 @@ function getNextAgeGroup(ageGrp){
   return AGE_GROUP_ORDER[idx+1];
 }
 function stripGoalAreaLabels(text=''){
-  return String(text).replace(/【[^】]+】/g,'');
+  return String(text)
+    .replace(/【[^】]+】/g,'')
+    .replace(/（目前\d+%）/g,'')
+    .replace(/\s+$/gm,'')
+    .trim();
 }
 function daysBetweenToday(dateStr){
   if(!dateStr)return 99999;
@@ -1374,7 +1378,7 @@ async function saveSoapLabels(labels){
 function getActiveGoalText(caseId){
   return DB.goals
     .filter(g=>g.caseId===caseId && g.status!=='done')
-    .map((g,i)=>`${i+1}. ${g.goal}${g.progress?`（目前${g.progress}%）`:''}`)
+    .map((g,i)=>`${i+1}. ${g.goal}`)
     .join('\n');
 }
 function parseActivityRecords(note){
@@ -1476,12 +1480,13 @@ function openNoteModal(editId=null){
   const records=draft?.records ?? (n?parseActivityRecords(n):[]);
   const draftDate=draft?.date || n?.date || today;
   const draftTherapist=draft?.therapist || n?.therapist || 'OT 劉若筠';
+  const goalSelectorHTML=renderNoteGoalSelector(currentCase?.id, goals||'');
   document.getElementById('mn-body').innerHTML=`
   <div class="frow">
     <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${draftDate}"></div>
     <div class="fg" style="display:none"><input class="fi" id="nf-therapist" value="${draftTherapist}"></div>
   </div>
-  <div class="fg"><label class="fl">治療目標（從目標自動匯入，可手動修改）</label><textarea class="fta" id="nf-goals" rows="4" placeholder="此處會自動帶入目前進行中的治療目標">${goals||''}</textarea></div>
+  <div class="fg"><label class="fl">本次介入目標（可複選）</label>${goalSelectorHTML}<textarea class="fta" id="nf-goals" rows="4" placeholder="可勾選上方目標，或直接手動輸入本次目標">${goals||''}</textarea></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px">
     <div style="font-size:13px;font-weight:700;color:var(--navy)">本次活動紀錄</div>
     <button type="button" class="btn btn-peach btn-sm" onclick="addTreatmentActivity()">＋ 新增本次活動</button>
