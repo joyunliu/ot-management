@@ -342,6 +342,8 @@ let accessToken=null, tokenExpiry=0;
 let soapActiveTab='S';
 let lastDeletedNote = null;
 let undoNoteTimer = null;
+let showArchivedAppts = false;
+const AGE_GROUP_ORDER=['0-6m','6-12m','1-1.5y','1.5-2y','2-2.5y','2.5-3y','3-4y','4-5y','5-6y','6y+'];
  
 
 // ══════════════════════════════════════════════════
@@ -572,6 +574,20 @@ function getAgeGroup(dob){
   if(m<24)return'1.5-2y';if(m<30)return'2-2.5y';if(m<36)return'2.5-3y';
   if(m<48)return'3-4y';if(m<60)return'4-5y';if(m<72)return'5-6y';return'6y+';
 }
+function getNextAgeGroup(ageGrp){
+  const idx=AGE_GROUP_ORDER.indexOf(ageGrp);
+  if(idx<0||idx>=AGE_GROUP_ORDER.length-1)return ageGrp;
+  return AGE_GROUP_ORDER[idx+1];
+}
+function stripGoalAreaLabels(text=''){
+  return String(text).replace(/【[^】]+】/g,'');
+}
+function daysBetweenToday(dateStr){
+  if(!dateStr)return 99999;
+  const d=new Date(dateStr+'T00:00:00');
+  const t=new Date();t.setHours(0,0,0,0);
+  return Math.floor((t-d)/(24*60*60*1000));
+}
  
 function calcFee(type,groupSize,timeSlot){
   const s=DB.settings;
@@ -585,7 +601,7 @@ function calcFee(type,groupSize,timeSlot){
 // NAV
 // ══════════════════════════════════════════════════
 function nav(page){
-  currentNav=page;currentCase=null;
+  currentNav=page;currentCase=null;showArchivedAppts=false;
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('active'));
   document.getElementById('bn-'+page)?.classList.add('active');
   render();
@@ -687,7 +703,7 @@ function renderCaseCards(list){
   </div>`).join('');
 }
 function filterCases(q){const g=document.getElementById('caseGrid');if(g)g.innerHTML=renderCaseCards(DB.cases.filter(c=>c.name.includes(q)||c.diagnosis.includes(q)));}
-function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='info';render();}
+function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='info';showArchivedAppts=false;render();}
  
 // ══════════════════════════════════════════════════
 // CASE DETAIL
@@ -717,8 +733,8 @@ function renderCaseDetail(){
     ${cG.length===0?'<div class="empty"><div class="ei">🎯</div>尚無治療目標</div>':cG.map(g=>`
     <div class="card" style="padding:14px 16px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div style="flex:1"><span class="tag" style="background:var(--lav-l);color:var(--lav)">${g.area}</span>
-        <div style="font-weight:600;font-size:13px;margin-top:5px">${g.goal}</div></div>
+        <div style="flex:1">
+        <div style="font-weight:600;font-size:13px;margin-top:2px">${g.goal}</div></div>
         <div style="display:flex;gap:5px;margin-left:8px;flex-shrink:0">
           <button class="btn btn-border btn-sm" onclick="editGoalProgress('${g.id}')">更新</button>
           <button class="btn btn-red btn-sm" onclick="deleteGoal('${g.id}')">🗑</button>
@@ -732,7 +748,7 @@ function renderCaseDetail(){
       ${g.target?`<div style="font-size:11px;color:var(--muted);margin-top:6px">目標日期：${g.target}</div>`:''}
     </div>`).join('')}`;
   } else if(currentCaseTab==='notes'){
-    body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button><button class="btn btn-border btn-sm" onclick="openExportNotesModal('${c.id}')">📄 匯出 Word</button></div>
+    body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openNoteModal()">+ 新增紀錄</button><button class="btn btn-border btn-sm" onclick="openExportNotesModal('${c.id}')">📄 匯出 Word</button><button class="btn btn-sage btn-sm" onclick="openExportNotesModal('${c.id}','csv')">📊 匯出 Excel</button></div>
     ${cN.length===0?'<div class="empty"><div class="ei">📝</div>尚無治療紀錄</div>':cN.map(n=>{
       const records=parseActivityRecords(n);
       const activityNames=records.map((r,i)=>r.activity?escapeHTML(r.activity):`未命名活動 ${i+1}`);
@@ -756,13 +772,13 @@ function renderCaseDetail(){
         <details style="margin-top:10px">
           <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--sage-d);background:var(--sage-l);border-radius:10px;padding:8px 10px;list-style:none">查看詳細紀錄</summary>
           <div style="margin-top:10px">
-            ${getNoteGoals(n)?`<div style="font-size:12px;color:var(--navy-l);background:var(--sage-l);padding:8px 10px;border-radius:10px;margin-bottom:8px"><strong>治療目標：</strong><br>${textToBr(getNoteGoals(n))}</div>`:''}
+            ${getNoteGoals(n)?`<div style="font-size:12px;color:var(--navy-l);background:var(--sage-l);padding:8px 10px;border-radius:10px;margin-bottom:8px"><strong>治療目標：</strong><br>${textToBr(stripGoalAreaLabels(getNoteGoals(n)))}</div>`:''}
             ${records.map((r,i)=>`<div style="background:var(--bg);border-radius:10px;padding:10px;margin-top:8px">
               <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:5px">本次活動 ${i+1}：${escapeHTML(r.activity||'')}</div>
               ${r.performance?`<div style="font-size:12px;line-height:1.6;margin-bottom:4px"><strong>執行狀況：</strong>${textToBr(r.performance)}</div>`:''}
               ${r.plan?`<div style="font-size:12px;line-height:1.6"><strong>治療計劃：</strong>${textToBr(r.plan)}</div>`:''}
             </div>`).join('')}
-            ${n.parentNote?`<div style="font-size:12px;color:var(--gold);margin-top:8px">💬 ${escapeHTML(n.parentNote)}</div>`:''}
+            
           </div>
         </details>
       </div>`;}).join('')}`;
@@ -816,8 +832,16 @@ function renderCaseDetail(){
         ${m.notes?`<div style="font-size:12px;color:var(--navy-l);margin-top:8px">${m.notes}</div>`:''}
       </div>`;}).join('')}`;
   } else if(currentCaseTab==='appts'){
-    body=`<div class="btn-row"><button class="btn btn-peach btn-sm" onclick="openApptModal('${c.id}')">+ 新增預約</button></div>
-    <div class="card">${cA.length===0?'<div class="empty"><div class="ei">📅</div>尚無預約</div>':cA.map(a=>`
+    const visibleAppts = showArchivedAppts
+      ? cA.filter(a=>a.status==='done' && daysBetweenToday(a.date)<=30)
+      : cA.filter(a=>a.status!=='done');
+    const hiddenOldDone = cA.filter(a=>a.status==='done' && daysBetweenToday(a.date)>30).length;
+    body=`<div class="btn-row">
+      <button class="btn btn-peach btn-sm" onclick="openApptModal('${c.id}')">+ 新增預約</button>
+      <button class="btn btn-border btn-sm" onclick="showArchivedAppts=!showArchivedAppts;render()">${showArchivedAppts?'查看待服務':'查看封存預約'}</button>
+    </div>
+    ${showArchivedAppts&&hiddenOldDone?`<div style="font-size:11px;color:var(--muted);margin:-6px 0 10px">已隱藏 ${hiddenOldDone} 筆超過 30 天的已完成預約</div>`:''}
+    <div class="card">${visibleAppts.length===0?`<div class="empty"><div class="ei">📅</div>${showArchivedAppts?'近 30 天無已完成預約':'尚無待服務預約'}</div>`:visibleAppts.map(a=>`
     <div class="card-row">
       <div style="width:9px;height:9px;border-radius:50%;background:${a.status==='done'?'var(--sage)':'var(--peach)'};flex-shrink:0"></div>
       <div style="flex:1"><div style="font-weight:600;font-size:13px">${a.date} ${a.time}</div>
@@ -825,7 +849,7 @@ function renderCaseDetail(){
       <div style="text-align:right">
         <div style="font-weight:700;color:var(--sage-d);font-size:13px">$${a.fee}</div>
         <div style="display:flex;gap:4px;margin-top:3px;justify-content:flex-end">
-          <button class="btn btn-border btn-sm" onclick="toggleApptStatus('${a.id}')">${a.status==='done'?'✅':'完成'}</button>
+          <button class="btn btn-border btn-sm" onclick="toggleApptStatus('${a.id}')">${a.status==='done'?'取消完成':'完成'}</button>
           <button class="btn btn-border btn-sm" onclick="openEditApptModal('${a.id}')">✏️</button>
           <button class="btn btn-red btn-sm" onclick="deleteAppt('${a.id}')">🗑</button>
         </div>
@@ -1034,8 +1058,8 @@ async function saveSettings(){
 // MODALS
 // ══════════════════════════════════════════════════
 function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-window.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)o.classList.remove('open');});});
+function closeModal(id){if(id==='modal-note')saveNoteDraft();document.getElementById(id).classList.remove('open');}
+window.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o){if(o.id==='modal-note')saveNoteDraft();o.classList.remove('open');}});});
  
 // Swipe down to close modal
 (function(){
@@ -1051,7 +1075,7 @@ window.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').f
     const dx=Math.abs(e.changedTouches[0].clientX-startX);
     if(dy>80&&dx<40){
       const overlay=sheet.closest('.overlay');
-      if(overlay)overlay.classList.remove('open');
+      if(overlay){if(overlay.id==='modal-note')saveNoteDraft();overlay.classList.remove('open');}
     }
   },{passive:true});
 })();
@@ -1350,7 +1374,7 @@ async function saveSoapLabels(labels){
 function getActiveGoalText(caseId){
   return DB.goals
     .filter(g=>g.caseId===caseId && g.status!=='done')
-    .map((g,i)=>`${i+1}.【${g.area||'目標'}】${g.goal}${g.progress?`（目前${g.progress}%）`:''}`)
+    .map((g,i)=>`${i+1}. ${g.goal}${g.progress?`（目前${g.progress}%）`:''}`)
     .join('\n');
 }
 function parseActivityRecords(note){
@@ -1384,6 +1408,35 @@ function renumberActivityBlocks(){
     if(title)title.textContent=`本次活動 ${i+1}`;
   });
 }
+
+function getNoteDraftKey(editId=null){
+  const caseId=currentCase?.id||'unknown';
+  return `ot_note_draft_${caseId}_${editId||'new'}`;
+}
+function collectNoteFormDraft(){
+  return {
+    date:document.getElementById('nf-date')?.value||'',
+    therapist:document.getElementById('nf-therapist')?.value||'',
+    goals:document.getElementById('nf-goals')?.value||'',
+    records:collectTreatmentActivities()
+  };
+}
+function saveNoteDraft(){
+  try{localStorage.setItem(getNoteDraftKey(window._editNoteId||null), JSON.stringify(collectNoteFormDraft()));}
+  catch(e){console.warn('note draft save failed',e);}
+}
+function loadNoteDraft(editId=null){
+  try{const raw=localStorage.getItem(getNoteDraftKey(editId));return raw?JSON.parse(raw):null;}
+  catch(e){return null;}
+}
+function clearNoteDraft(editId=null){try{localStorage.removeItem(getNoteDraftKey(editId));}catch(e){}}
+function bindNoteDraftAutosave(){
+  const body=document.getElementById('mn-body');
+  if(!body)return;
+  body.addEventListener('input', saveNoteDraft);
+  body.addEventListener('change', saveNoteDraft);
+}
+
 function addTreatmentActivity(data={}){
   const wrap=document.getElementById('activity-records-wrap');
   if(!wrap)return;
@@ -1395,25 +1448,16 @@ function addTreatmentActivity(data={}){
       <div class="activity-title" style="font-size:13px;font-weight:700;color:var(--navy)">本次活動</div>
       <button type="button" onclick="this.closest('.activity-record-block').remove();renumberActivityBlocks();" style="background:var(--red-l);color:var(--red);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer">刪除</button>
     </div>
-    <div class="fg"><label class="fl">本次活動</label><textarea class="fta note-activity" rows="2" placeholder="例如：桌遊輪流、精細操作、感統活動、生活自理練習" oninput="autoFillTreatmentActivity(this)">${data.activity||''}</textarea></div>
-    <div class="fg"><label class="fl">執行狀況</label><textarea class="fta note-performance" rows="3" placeholder="輸入活動後會自動帶出，可再手動修改">${data.performance||''}</textarea></div>
-    <div class="fg"><label class="fl">治療計劃</label><textarea class="fta note-plan" rows="3" placeholder="輸入活動後會自動帶出，可再手動修改">${data.plan||''}</textarea></div>
+    <div class="fg"><label class="fl">本次活動</label><textarea class="fta note-activity" rows="2" placeholder="例如：桌遊輪流、精細操作、感統活動、生活自理練習" oninput="saveNoteDraft()">${data.activity||''}</textarea></div>
+    <div class="fg"><label class="fl">執行狀況</label><textarea class="fta note-performance" rows="3" placeholder="請手動填寫個案表現、需要提示程度、完成度等">${data.performance||''}</textarea></div>
+    <div class="fg"><label class="fl">治療計劃</label><textarea class="fta note-plan" rows="3" placeholder="請手動填寫下次延續方向或回家練習">${data.plan||''}</textarea></div>
   `;
   wrap.appendChild(block);
   renumberActivityBlocks();
 }
 function autoFillTreatmentActivity(activityInput){
-  const block=activityInput.closest('.activity-record-block');
-  const performance=block.querySelector('.note-performance');
-  const plan=block.querySelector('.note-plan');
-  const activity=activityInput.value.trim();
-  if(!activity){performance.value='';plan.value='';return;}
-  if(!performance.value.trim()){
-    performance.value=`個案可在引導下參與「${activity}」，過程中觀察其注意力、指令理解、動作表現與情緒行為反應。依任務難度不同，需口語提示、示範或分段協助完成。`;
-  }
-  if(!plan.value.trim()){
-    plan.value=`下次將延續「${activity}」相關能力訓練，並依個案表現調整活動難度。治療中將持續觀察其參與度、等待能力、指令理解與獨立完成度。`;
-  }
+  // 已取消自動生成敘述，保留空函式避免舊版事件呼叫造成錯誤。
+  saveNoteDraft();
 }
 function collectTreatmentActivities(){
   return Array.from(document.querySelectorAll('#activity-records-wrap .activity-record-block')).map(block=>({
@@ -1427,12 +1471,15 @@ function openNoteModal(editId=null){
   const n=editId?DB.notes.find(x=>x.id===editId):null;
   document.getElementById('mn-title').textContent=n?'編輯治療紀錄':(currentCase?.name||'')+' · 新增治療紀錄';
   const today=new Date().toISOString().slice(0,10);
-  const goals=n?getNoteGoals(n):getActiveGoalText(currentCase?.id);
-  const records=n?parseActivityRecords(n):[];
+  const draft=!n?loadNoteDraft(null):loadNoteDraft(editId);
+  const goals=draft?.goals ?? (n?stripGoalAreaLabels(getNoteGoals(n)):getActiveGoalText(currentCase?.id));
+  const records=draft?.records ?? (n?parseActivityRecords(n):[]);
+  const draftDate=draft?.date || n?.date || today;
+  const draftTherapist=draft?.therapist || n?.therapist || 'OT 劉若筠';
   document.getElementById('mn-body').innerHTML=`
   <div class="frow">
-    <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${n?.date||today}"></div>
-    <div class="fg" style="display:none"><input class="fi" id="nf-therapist" value="${n?.therapist||'OT 劉若筠'}"></div>
+    <div class="fg"><label class="fl">日期</label><input class="fi" type="date" id="nf-date" value="${draftDate}"></div>
+    <div class="fg" style="display:none"><input class="fi" id="nf-therapist" value="${draftTherapist}"></div>
   </div>
   <div class="fg"><label class="fl">治療目標（從目標自動匯入，可手動修改）</label><textarea class="fta" id="nf-goals" rows="4" placeholder="此處會自動帶入目前進行中的治療目標">${goals||''}</textarea></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px">
@@ -1440,13 +1487,14 @@ function openNoteModal(editId=null){
     <button type="button" class="btn btn-peach btn-sm" onclick="addTreatmentActivity()">＋ 新增本次活動</button>
   </div>
   <div id="activity-records-wrap"></div>
-  <div class="fg"><label class="fl">家長聯絡事項</label><input class="fi" id="nf-parent" value="${n?.parentNote||''}" placeholder="回家作業、注意事項…"></div>
   <div class="btn-row" style="margin-top:8px">
     <button class="btn btn-peach btn-full" onclick="submitNote('${n?.id||''}')">📝 ${n?'儲存修改':'儲存紀錄'}</button>
   </div>`;
   openModal('modal-note');
   if(records.length){records.forEach(r=>addTreatmentActivity(r));}
   else{addTreatmentActivity();}
+  bindNoteDraftAutosave();
+  saveNoteDraft();
 }
 
 function appendChip(k,val){
@@ -1511,10 +1559,11 @@ async function submitNote(editId){
     soapA:'',
     soapP:'',
     activities:firstActivities,
-    parentNote:document.getElementById('nf-parent').value,
+    parentNote:'',
     therapist:document.getElementById('nf-therapist').value};
   if(editId){const idx=DB.notes.findIndex(n=>n.id===editId);DB.notes[idx]=data;}
   else DB.notes.push(data);
+  clearNoteDraft(editId||null);
   closeModal('modal-note');toast('💾 儲存中…');await saveAll('notes')();saveCache();toast('✅ 紀錄已儲存');render();
 }
 
@@ -1806,18 +1855,33 @@ function deleteAssess(id){confirmDialog('確定要刪除此評估記錄？',asyn
 function openMilestoneModal(){
   const c=currentCase;
   const ageGrp=getAgeGroup(c.dob);
+  const nextGrp=getNextAgeGroup(ageGrp);
   const ms=MILESTONES[ageGrp];
+  const nextMs=MILESTONES[nextGrp];
   document.getElementById('mm-title').textContent=`${c.name} · 發展里程碑`;
   document.getElementById('mm-body').innerHTML=`
-  <div style="background:var(--sage-l);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--sage-d)">
-    📌 根據 ${c.name} 目前年齡（${ageMonths(c.dob)}個月），對應 <strong>${ms.title}</strong> 里程碑
+  <div style="background:var(--sage-l);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--sage-d);line-height:1.6">
+    📌 目前年齡：<strong>${age(c.dob)}（${ageMonths(c.dob)}個月）</strong><br>
+    🌱 目前應具備：<strong>${ms.title}</strong><br>
+    🎯 下一階段可訓練：<strong>${nextMs.title}</strong>
   </div>
   <div class="fg"><label class="fl">評估日期</label><input class="fi" type="date" id="mf-date" value="${new Date().toISOString().slice(0,10)}"></div>
-  ${renderMilestoneSection('粗大動作','mf-gross',ms.gross)}
-  ${renderMilestoneSection('精細動作','mf-fine',ms.fine)}
-  ${renderMilestoneSection('認知發展','mf-cog',ms.cognitive)}
-  ${renderMilestoneSection('社交情緒','mf-social',ms.social)}
-  ${renderMilestoneSection('生活自理','mf-sc',ms.selfcare)}
+  <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid var(--border)">
+    <div style="font-size:14px;font-weight:800;color:var(--sage-d);margin-bottom:10px">🌱 目前應具備｜${ms.title}</div>
+    ${renderMilestoneSection('粗大動作','mf-gross',ms.gross)}
+    ${renderMilestoneSection('精細動作','mf-fine',ms.fine)}
+    ${renderMilestoneSection('認知發展','mf-cog',ms.cognitive)}
+    ${renderMilestoneSection('社交情緒','mf-social',ms.social)}
+    ${renderMilestoneSection('生活自理','mf-sc',ms.selfcare)}
+  </div>
+  <div style="background:var(--gold-l);border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid var(--border)">
+    <div style="font-size:14px;font-weight:800;color:var(--gold);margin-bottom:10px">🎯 下一階段目標｜${nextMs.title}</div>
+    ${renderMilestoneReferenceSection('粗大動作',nextMs.gross)}
+    ${renderMilestoneReferenceSection('精細動作',nextMs.fine)}
+    ${renderMilestoneReferenceSection('認知發展',nextMs.cognitive)}
+    ${renderMilestoneReferenceSection('社交情緒',nextMs.social)}
+    ${renderMilestoneReferenceSection('生活自理',nextMs.selfcare)}
+  </div>
   <div class="fg"><label class="fl">補充說明</label><textarea class="fta" id="mf-notes" placeholder="其他觀察…"></textarea></div>
   <button class="btn btn-gold btn-full" onclick="submitMilestone('${ageGrp}')">🌱 儲存里程碑紀錄</button>`;
   openModal('modal-milestone');
@@ -1835,6 +1899,13 @@ function renderMilestoneSection(title,prefix,items){
         <button class="milestone-check" id="${prefix}-${i}-na" onclick="setMilestone('${prefix}',${i},'na')">–</button>
       </div>
     </div>`).join('')}
+  </div>`;
+}
+ 
+function renderMilestoneReferenceSection(title,items){
+  return`<div class="milestone-section">
+    <div class="milestone-title">${title}</div>
+    ${items.map(item=>`<div class="milestone-item"><div style="flex:1;font-size:13px;color:var(--navy)">${item}</div><span class="tag" style="background:#fff;color:var(--gold)">可訓練</span></div>`).join('')}
   </div>`;
 }
  
@@ -1862,7 +1933,14 @@ async function submitMilestone(ageGrp){
     gross:JSON.stringify(toObj('mf-gross')||{}),fine:JSON.stringify(toObj('mf-fine')||{}),
     cognitive:JSON.stringify(toObj('mf-cog')||{}),social:JSON.stringify(toObj('mf-social')||{}),
     selfcare:JSON.stringify(toObj('mf-sc')||{}),notes:document.getElementById('mf-notes').value};
-  DB.milestones.push(data);window._msData={};
+  DB.milestones.push(data);function renderMilestoneReferenceSection(title,items){
+  return`<div class="milestone-section">
+    <div class="milestone-title">${title}</div>
+    ${items.map(item=>`<div class="milestone-item"><div style="flex:1;font-size:13px;color:var(--navy)">${item}</div><span class="tag" style="background:#fff;color:var(--gold)">可訓練</span></div>`).join('')}
+  </div>`;
+}
+ 
+window._msData={};
   closeModal('modal-milestone');toast('💾 儲存中…');await saveAll('milestones')();toast('✅ 里程碑已儲存');render();
 }
  
@@ -2200,7 +2278,7 @@ function buildInitialReportHTML(c, d){
  
  
 // ── Export Notes Modal ──
-function openExportNotesModal(caseId){
+function openExportNotesModal(caseId,mode='word'){
   const c=DB.cases.find(x=>x.id===caseId);if(!c)return;
   const notes=DB.notes.filter(n=>n.caseId===caseId).sort((a,b)=>a.date.localeCompare(b.date));
   if(!notes.length){toast('此個案尚無治療紀錄');return;}
@@ -2209,7 +2287,7 @@ function openExportNotesModal(caseId){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(44,62,80,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML=`<div style="background:#fff;border-radius:22px 22px 0 0;padding:24px;width:100%;max-width:520px;padding-bottom:calc(env(safe-area-inset-bottom)+24px)">
-    <div style="font-family:Georgia,serif;font-size:18px;color:var(--navy);margin-bottom:16px">📄 匯出治療紀錄</div>
+    <div style="font-family:Georgia,serif;font-size:18px;color:var(--navy);margin-bottom:16px">${mode==='csv'?'📊 匯出 Excel':'📄 匯出治療紀錄'}</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${c.name} · 共 ${notes.length} 筆紀錄</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       <div><label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">開始日期</label>
@@ -2219,7 +2297,7 @@ function openExportNotesModal(caseId){
     </div>
     <div style="display:flex;gap:10px">
       <button onclick="this.closest('div[style]').parentElement.remove()" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer;font-family:inherit">取消</button>
-      <button onclick="doExportNotes('${caseId}')" style="flex:2;padding:11px;border-radius:10px;border:none;background:var(--sage-d);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">📄 匯出</button>
+      <button onclick="${mode==='csv'?`doExportNotesCSV('${caseId}')`:`doExportNotes('${caseId}')`}" style="flex:2;padding:11px;border-radius:10px;border:none;background:var(--sage-d);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">${mode==='csv'?'📊 匯出 Excel':'📄 匯出 Word'}</button>
     </div>
   </div>`;
   document.body.appendChild(overlay);
@@ -2256,13 +2334,12 @@ function doExportNotes(caseId){
     const records=parseActivityRecords(n);
     return `<div class="note">
       <div class="date">${n.date}　${n.therapist||''}</div>
-      ${getNoteGoals(n)?`<div class="goals"><span class="label">治療目標：</span><br>${textToBr(getNoteGoals(n))}</div>`:''}
+      ${getNoteGoals(n)?`<div class="goals"><span class="label">治療目標：</span><br>${textToBr(stripGoalAreaLabels(getNoteGoals(n)))}</div>`:''}
       ${records.map((r,i)=>`<div class="activity">
         <div class="activity-title">本次活動 ${i+1}：${textToBr(r.activity||'')}</div>
         ${r.performance?`<div class="row"><span class="label">執行狀況：</span>${textToBr(r.performance)}</div>`:''}
         ${r.plan?`<div class="row"><span class="label">治療計劃：</span>${textToBr(r.plan)}</div>`:''}
       </div>`).join('')}
-      ${n.parentNote?`<div class="row"><span class="label">家長聯絡：</span>${textToBr(n.parentNote)}</div>`:''}
     </div>`;
   }).join('')}
   </body></html>`;
@@ -2281,6 +2358,45 @@ function doExportNotes(caseId){
 
  
  
+
+function csvEscape(v=''){
+  const s=String(v).replace(/\r?\n/g,'\n');
+  return '"'+s.replace(/"/g,'""')+'"';
+}
+function downloadCSV(filename, rows){
+  const csv='\ufeff'+rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+function doExportNotesCSV(caseId){
+  const c=DB.cases.find(x=>x.id===caseId);if(!c)return;
+  const from=document.getElementById('export-from')?.value||'';
+  const to=document.getElementById('export-to')?.value||'';
+  const notes=DB.notes.filter(n=>n.caseId===caseId&&(!from||n.date>=from)&&(!to||n.date<=to))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  if(!notes.length){toast('所選日期範圍內沒有紀錄');return;}
+  document.querySelectorAll('div[style*="position:fixed"]').forEach(el=>{if(el.id!=='pwd-screen'&&el.id!=='toast'&&el.id!=='loading')el.remove();});
+  const rows=[['日期','個案姓名','治療目標','本次活動','執行狀況','治療計畫']];
+  notes.forEach(n=>{
+    const goals=stripGoalAreaLabels(getNoteGoals(n)||'');
+    const records=parseActivityRecords(n);
+    if(records.length){
+      records.forEach(r=>rows.push([n.date,c.name,goals,r.activity||'',r.performance||'',r.plan||'']));
+    }else{
+      rows.push([n.date,c.name,goals,n.activities||'','','']);
+    }
+  });
+  downloadCSV(`治療紀錄_${c.name}_${from||'起'}_${to||'迄'}.csv`, rows);
+  toast(`✅ 已匯出 ${rows.length-1} 列 Excel/CSV 紀錄`);
+}
+
 // ── AI SOAP Generator ──
 async function generateSOAP(){
   const input = document.getElementById('nf-ai-input')?.value?.trim();
