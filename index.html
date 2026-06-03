@@ -1381,6 +1381,31 @@ function getActiveGoalText(caseId){
     .map((g,i)=>`${i+1}. ${g.goal}`)
     .join('\n');
 }
+
+function renderNoteGoalSelector(caseId, selectedText=''){
+  const goals = DB.goals.filter(g=>g.caseId===caseId && g.status!=='done');
+  if(!goals.length){
+    return '<div style="font-size:12px;color:var(--muted);background:var(--bg);border-radius:10px;padding:8px 10px;margin-bottom:8px">尚無進行中的治療目標，可直接在下方手動輸入。</div>';
+  }
+  const selected = String(selectedText||'');
+  return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">${goals.map((g,i)=>{
+    const goalText = `${i+1}. ${g.goal}`;
+    const checked = selected.includes(g.goal) || selected.includes(goalText);
+    return `<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" class="note-goal-check" value="${escapeHTML(goalText)}" ${checked?'checked':''} onchange="updateNoteGoalsFromChecks()" style="margin-top:3px;flex-shrink:0">
+      <span>${escapeHTML(g.goal)}</span>
+    </label>`;
+  }).join('')}</div>`;
+}
+
+function updateNoteGoalsFromChecks(){
+  const ta = document.getElementById('nf-goals');
+  if(!ta)return;
+  const checked = Array.from(document.querySelectorAll('.note-goal-check:checked')).map(x=>x.value);
+  ta.value = checked.join('\n');
+  saveNoteDraft();
+}
+
 function parseActivityRecords(note){
   if(!note)return[];
   try{
