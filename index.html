@@ -343,6 +343,8 @@ let soapActiveTab='S';
 let lastDeletedNote = null;
 let undoNoteTimer = null;
 let showArchivedAppts = false;
+let caseStatusFilter = 'all';
+let caseSortMode = 'statusStroke';
 const AGE_GROUP_ORDER=['0-6m','6-12m','1-1.5y','1.5-2y','2-2.5y','2.5-3y','3-4y','4-5y','5-6y','6y+'];
  
 
@@ -557,6 +559,42 @@ function age(dob){if(!dob)return'–';const d=new Date(dob),n=new Date();let y=n
 function ageMonths(dob){if(!dob)return 0;const d=new Date(dob),n=new Date();return(n.getFullYear()-d.getFullYear())*12+(n.getMonth()-d.getMonth());}
 function caseColor(id){return DB.cases.find(x=>x.id===id)?.color||COLORS[0];}
 function caseName(id){return DB.cases.find(x=>x.id===id)?.name||'–';}
+function statusLabel(status){return status==='active'?'治療中':status==='pending'?'待初評':'暫停';}
+function statusRank(status){return status==='active'?0:status==='pending'?1:status==='pause'?2:3;}
+function statusTagStyle(status){
+  if(status==='active')return {bg:'var(--sage-l)',color:'var(--sage-d)'};
+  if(status==='pending')return {bg:'var(--gold-l)',color:'var(--gold)'};
+  return {bg:'var(--border)',color:'var(--muted)'};
+}
+function strokeCompare(a='',b=''){
+  try{return String(a).localeCompare(String(b),'zh-Hant-u-co-stroke');}
+  catch(e){return String(a).localeCompare(String(b),'zh-Hant');}
+}
+function getCaseList(){
+  const q=(document.getElementById('caseSearch')?.value||'').trim();
+  let list=[...DB.cases];
+  if(caseStatusFilter!=='all')list=list.filter(c=>c.status===caseStatusFilter);
+  if(q)list=list.filter(c=>(c.name||'').includes(q)||(c.diagnosis||'').includes(q)||(c.diagOther||'').includes(q));
+  if(caseSortMode==='stroke'){
+    list.sort((a,b)=>strokeCompare(a.name,b.name));
+  }else if(caseSortMode==='created'){
+    list.sort((a,b)=>String(a.id||'').localeCompare(String(b.id||'')));
+  }else{
+    list.sort((a,b)=>statusRank(a.status)-statusRank(b.status)||strokeCompare(a.name,b.name));
+  }
+  return list;
+}
+function setCaseStatusFilter(status){caseStatusFilter=status;filterCases();}
+function getWeekRangeMondaySunday(base=new Date()){
+  const d=new Date(base);d.setHours(0,0,0,0);
+  const day=d.getDay();
+  const diffToMon=(day+6)%7;
+  const start=new Date(d);start.setDate(d.getDate()-diffToMon);
+  const end=new Date(start);end.setDate(start.getDate()+6);
+  const toISO=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  const label=x=>`${x.getMonth()+1}/${x.getDate()}`;
+  return {start,end,startISO:toISO(start),endISO:toISO(end),label:`${label(start)}–${label(end)}`};
+}
 function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
 function firstDay(y,m){return new Date(y,m,1).getDay();}
  
@@ -685,28 +723,47 @@ function renderDashboard(){
 // CASES LIST
 // ══════════════════════════════════════════════════
 function renderCases(){
+  const counts={
+    all:DB.cases.length,
+    active:DB.cases.filter(c=>c.status==='active').length,
+    pending:DB.cases.filter(c=>c.status==='pending').length,
+    pause:DB.cases.filter(c=>c.status==='pause').length
+  };
+  const statusTabs=[['all','全部'],['active','治療中'],['pending','待初評'],['pause','暫停']];
   return`
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
     <div class="ptitle" style="margin-bottom:0">個案管理</div>
     <button class="btn btn-sage btn-sm" onclick="openCaseModal()">+ 新增</button>
   </div>
-  <input class="search" id="caseSearch" placeholder="搜尋姓名或診斷…" oninput="filterCases(this.value)">
-  <div class="case-grid" id="caseGrid">${renderCaseCards(DB.cases)}</div>`;
+  <input class="search" id="caseSearch" placeholder="搜尋姓名或診斷…" oninput="filterCases()">
+  <div class="tabs" style="margin-bottom:10px">${statusTabs.map(([k,l])=>`<button class="tab${caseStatusFilter===k?' active':''}" onclick="setCaseStatusFilter('${k}')">${l} ${counts[k]}</button>`).join('')}</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <label style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap">排序</label>
+    <select class="fsel" style="padding:8px 10px;font-size:13px" onchange="caseSortMode=this.value;filterCases()">
+      <option value="statusStroke"${caseSortMode==='statusStroke'?' selected':''}>狀態＋姓氏筆畫</option>
+      <option value="stroke"${caseSortMode==='stroke'?' selected':''}>姓氏筆畫</option>
+      <option value="created"${caseSortMode==='created'?' selected':''}>新增時間</option>
+    </select>
+  </div>
+  <div class="case-grid" id="caseGrid">${renderCaseCards(getCaseList())}</div>`;
 }
 function renderCaseCards(list){
-  if(!list.length)return`<div class="empty" style="grid-column:1/-1"><div class="ei">👤</div>尚無個案</div>`;
-  return list.map(c=>`
-  <div class="case-card" onclick="selectCase('${c.id}')">
+  if(!list.length)return`<div class="empty" style="grid-column:1/-1"><div class="ei">👤</div>找不到符合條件的個案</div>`;
+  return list.map(c=>{
+    const st=statusTagStyle(c.status);
+    return `
+  <div class="case-card" onclick="selectCase('${c.id}')" style="border-left:5px solid ${c.color||COLORS[0]}">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
-      <div class="av" style="width:38px;height:38px;background:${c.color};font-size:16px">${c.name[0]||'?'}</div>
+      <div class="av" style="width:38px;height:38px;background:${c.color||COLORS[0]};font-size:16px">${c.name[0]||'?'}</div>
       <div><div style="font-weight:700;font-size:14px">${c.name}</div>
-      <span class="tag" style="background:${c.status==='active'?'var(--sage-l)':c.status==='pending'?'var(--gold-l)':'var(--border)'};color:${c.status==='active'?'var(--sage-d)':c.status==='pending'?'var(--gold)':'var(--muted)'}">${c.status==='active'?'治療中':c.status==='pending'?'待初評':'暫停'}</span></div>
+      <span class="tag" style="background:${st.bg};color:${st.color}">${statusLabel(c.status)}</span></div>
     </div>
-    <div style="font-size:11px;color:var(--navy-l);margin-bottom:2px">🔍 ${c.diagnosis||'–'}</div>
+    <div style="font-size:11px;color:var(--navy-l);margin-bottom:2px">🔍 ${c.diagOther||c.diagnosis||'–'}</div>
     <div style="font-size:11px;color:var(--muted)">${age(c.dob)} · ${c.sessions}次</div>
-  </div>`).join('');
+  </div>`;
+  }).join('');
 }
-function filterCases(q){const g=document.getElementById('caseGrid');if(g)g.innerHTML=renderCaseCards(DB.cases.filter(c=>c.name.includes(q)||c.diagnosis.includes(q)));}
+function filterCases(){const g=document.getElementById('caseGrid');if(g)g.innerHTML=renderCaseCards(getCaseList());}
 function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='info';showArchivedAppts=false;render();}
  
 // ══════════════════════════════════════════════════
@@ -929,6 +986,13 @@ function renderIncome(){
   const grpDone=done.filter(a=>a.type==='group');
   const totalDone=done.reduce((s,a)=>s+a.fee,0);
   const totalUp=mA.filter(a=>a.status==='upcoming').reduce((s,a)=>s+a.fee,0);
+  const week=getWeekRangeMondaySunday(new Date());
+  const weekA=DB.appts.filter(a=>a.date>=week.startISO&&a.date<=week.endISO);
+  const weekDone=weekA.filter(a=>a.status==='done');
+  const weekUpcoming=weekA.filter(a=>a.status==='upcoming');
+  const weekIncome=weekDone.reduce((s,a)=>s+a.fee,0);
+  const weekExpected=weekUpcoming.reduce((s,a)=>s+a.fee,0);
+  const weeklyCommission=Math.round(weekIncome*(+DB.settings.commissionRate||60)/100);
   const monthly=Array.from({length:12},(_,m)=>{const ma=DB.appts.filter(a=>{const d=new Date(a.date);return d.getFullYear()===incomeYear&&d.getMonth()===m&&a.status==='done';});return ma.reduce((s,a)=>s+a.fee,0);});
   const maxM=Math.max(...monthly,1);
   const byCase=DB.cases.map(c=>{const ca=done.filter(a=>a.caseId===c.id);return{...c,count:ca.length,income:ca.reduce((s,a)=>s+a.fee,0)};}).filter(c=>c.income>0).sort((a,b)=>b.income-a.income);
@@ -943,6 +1007,22 @@ function renderIncome(){
     <div class="stat" style="background:var(--gold-l)"><div class="stat-ic">⏳</div><div class="stat-v" style="color:var(--gold);font-size:17px">$${totalUp.toLocaleString()}</div><div class="stat-l">預計收入</div></div>
     <div class="stat" style="background:#EBF0FC"><div class="stat-ic">👤</div><div class="stat-v" style="color:#5B78C9">${indDone.length}<span style="font-size:12px;font-weight:400;margin-left:2px">次</span></div><div class="stat-l">個別課</div></div>
     <div class="stat" style="background:var(--lav-l)"><div class="stat-ic">👥</div><div class="stat-v" style="color:var(--lav)">${grpDone.length}<span style="font-size:12px;font-weight:400;margin-left:2px">次</span></div><div class="stat-l">團體課</div></div>
+  </div>
+  <div class="card">
+    <div class="stitle">📅 本週收入（${week.label}）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="background:var(--sage-l);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">本週已完成收入</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--sage-d)">$${weekIncome.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">${weekDone.length} 次已完成</div>
+      </div>
+      <div style="background:var(--gold-l);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">本週預計收入</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--gold)">$${weekExpected.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">${weekUpcoming.length} 次未完成</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--navy-l);background:var(--bg);border-radius:10px;padding:9px 12px">本週抽成（${Math.round(+DB.settings.commissionRate||60)}%）：<strong style="color:var(--sage-d)">$${weeklyCommission.toLocaleString()}</strong></div>
   </div>
   <div class="card">
     <div class="stitle">📈 ${incomeYear} 年月收入</div>
@@ -1110,6 +1190,12 @@ function openCaseModal(editId=null){
       </select>
     </div>
   </div>
+  <div class="fg"><label class="fl">個案代表色</label>
+    <input class="fi" type="color" id="cf-color" value="${c?.color||COLORS[DB.cases.length%COLORS.length]}" style="height:42px;padding:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+      ${COLORS.map(col=>`<button type="button" onclick="document.getElementById('cf-color').value='${col}'" style="width:28px;height:28px;border-radius:9px;border:2px solid var(--border);background:${col};cursor:pointer"></button>`).join('')}
+    </div>
+  </div>
   <div class="fg"><label class="fl">診斷</label>
     <select class="fsel" id="cf-diag-sel" onchange="toggleDiagOther()">
       ${DIAGNOSES.map(d=>`<option value="${d}"${(c?.diagnosis===d||(!c?.diagnosis&&d==='發展遲緩'))?' selected':''}>${d}</option>`).join('')}
@@ -1133,9 +1219,9 @@ async function submitCase(editId){
   if(!name){toast('❌ 請輸入姓名');return;}
   const diagSel=document.getElementById('cf-diag-sel').value;
   const diagOther=diagSel==='其他（自行輸入）'?document.getElementById('cf-diag-other').value:diagSel;
-  const data={id:editId||newId(),name,dob:document.getElementById('cf-dob').value,gender:document.getElementById('cf-gender').value,diagnosis:diagSel,diagOther:diagOther,guardian:document.getElementById('cf-guardian').value,phone:document.getElementById('cf-phone').value,status:document.getElementById('cf-status').value,note:document.getElementById('cf-note').value};
-  if(editId){const idx=DB.cases.findIndex(c=>c.id===editId);data.sessions=DB.cases[idx].sessions;data.color=DB.cases[idx].color;DB.cases[idx]=data;if(currentCase?.id===editId)currentCase=data;}
-  else{data.sessions=0;data.color=COLORS[DB.cases.length%COLORS.length];DB.cases.push(data);}
+  const data={id:editId||newId(),name,dob:document.getElementById('cf-dob').value,gender:document.getElementById('cf-gender').value,diagnosis:diagSel,diagOther:diagOther,guardian:document.getElementById('cf-guardian').value,phone:document.getElementById('cf-phone').value,status:document.getElementById('cf-status').value,color:document.getElementById('cf-color')?.value||COLORS[0],note:document.getElementById('cf-note').value};
+  if(editId){const idx=DB.cases.findIndex(c=>c.id===editId);data.sessions=DB.cases[idx].sessions;DB.cases[idx]=data;if(currentCase?.id===editId)currentCase=data;}
+  else{data.sessions=0;DB.cases.push(data);}
   closeModal('modal-case');toast('💾 儲存中…');await saveAll('cases')();toast('✅ 已儲存');render();
 }
  
