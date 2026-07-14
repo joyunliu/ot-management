@@ -335,7 +335,7 @@ const MILESTONES = {
 // STATE
 // ══════════════════════════════════════════════════
 let DB = { cases:[], appts:[], goals:[], notes:[], assessments:[], milestones:[], initialAssessments:[], settings:{} };
-let currentNav='dashboard', currentCase=null, currentCaseTab='info';
+let currentNav='dashboard', currentCase=null, currentCaseTab='info', caseDetailReturnNav='cases';
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=null;
 let incomeYear=new Date().getFullYear(), incomeMonth=new Date().getMonth();
 let accessToken=null, tokenExpiry=0;
@@ -547,6 +547,7 @@ function navToCase(caseId){
   currentCase=DB.cases.find(c=>c.id===caseId);
   if(!currentCase)return;
   currentCaseTab='info';
+  caseDetailReturnNav=currentNav==='dashboard'?'dashboard':'cases';
   currentNav='cases';
   document.querySelectorAll('.bn').forEach(b=>b.classList.remove('active'));
   document.getElementById('bn-cases')?.classList.add('active');
@@ -579,6 +580,10 @@ function getCaseList(){
     list.sort((a,b)=>strokeCompare(a.name,b.name));
   }else if(caseSortMode==='created'){
     list.sort((a,b)=>String(a.id||'').localeCompare(String(b.id||'')));
+  }else if(caseSortMode==='ageAsc'){
+    list.sort((a,b)=>ageMonths(a.dob)-ageMonths(b.dob)||strokeCompare(a.name,b.name));
+  }else if(caseSortMode==='ageDesc'){
+    list.sort((a,b)=>ageMonths(b.dob)-ageMonths(a.dob)||strokeCompare(a.name,b.name));
   }else{
     list.sort((a,b)=>statusRank(a.status)-statusRank(b.status)||strokeCompare(a.name,b.name));
   }
@@ -743,6 +748,8 @@ function renderCases(){
       <option value="statusStroke"${caseSortMode==='statusStroke'?' selected':''}>狀態＋姓氏筆畫</option>
       <option value="stroke"${caseSortMode==='stroke'?' selected':''}>姓氏筆畫</option>
       <option value="created"${caseSortMode==='created'?' selected':''}>新增時間</option>
+      <option value="ageAsc"${caseSortMode==='ageAsc'?' selected':''}>年齡（小到大）</option>
+      <option value="ageDesc"${caseSortMode==='ageDesc'?' selected':''}>年齡（大到小）</option>
     </select>
   </div>
   <div class="case-grid" id="caseGrid">${renderCaseCards(getCaseList())}</div>`;
@@ -764,7 +771,7 @@ function renderCaseCards(list){
   }).join('');
 }
 function filterCases(){const g=document.getElementById('caseGrid');if(g)g.innerHTML=renderCaseCards(getCaseList());}
-function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='info';showArchivedAppts=false;render();}
+function selectCase(id){currentCase=DB.cases.find(c=>c.id===id);currentCaseTab='info';showArchivedAppts=false;caseDetailReturnNav='cases';render();}
  
 // ══════════════════════════════════════════════════
 // CASE DETAIL
@@ -919,7 +926,7 @@ function renderCaseDetail(){
   }
  
   return`
-  <button class="back-btn" onclick="currentCase=null;render()">← 返回列表</button>
+  <button class="back-btn" onclick="if(caseDetailReturnNav==='dashboard'){nav('dashboard');}else{currentCase=null;render();}">← ${caseDetailReturnNav==='dashboard'?'返回總覽':'返回列表'}</button>
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
     <div class="av" style="width:48px;height:48px;background:${c.color};font-size:20px">${c.name[0]||'?'}</div>
     <div><div style="font-family:var(--fh);font-size:20px">${c.name}</div>
@@ -1069,6 +1076,16 @@ function renderIncome(){
       <div style="background:var(--lav-l);border-radius:12px;padding:14px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">預計抽成</div>
         <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--lav)">$${Math.round(totalUp*(+DB.settings.commissionRate||60)/100).toLocaleString()}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">本月收入總和（已收＋預計）</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--navy)">$${(totalDone+totalUp).toLocaleString()}</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">抽成總和（已收＋預計）</div>
+        <div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--navy)">$${Math.round((totalDone+totalUp)*(+DB.settings.commissionRate||60)/100).toLocaleString()}</div>
       </div>
     </div>
   </div>`;
@@ -2657,4 +2674,3 @@ boot();
 </script>
 </body>
 </html>
- 
