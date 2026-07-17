@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="OT管理">
 <meta name="theme-color" content="#2C3E50">
-<title>兒童職能治療管理 v2</title>
+<title>兒童職能治療管理系統</title>
 <style>
 /* System fonts - no external loading needed */
 </style>
@@ -336,6 +336,21 @@ const MILESTONES = {
 // ══════════════════════════════════════════════════
 let DB = { cases:[], appts:[], goals:[], notes:[], assessments:[], milestones:[], initialAssessments:[], settings:{} };
 let currentNav='dashboard', currentCase=null, currentCaseTab='info', caseDetailReturnNav='cases';
+// 資料保護：記錄最近一次確認成功同步/載入的各類資料筆數，用來偵測異常驟減
+let syncedCounts={cases:0,appts:0,goals:0,notes:0,assessments:0,milestones:0,initialAssessments:0};
+function updateSyncedCounts(){
+  syncedCounts={
+    cases:DB.cases.length,appts:DB.appts.length,goals:DB.goals.length,
+    notes:DB.notes.length,assessments:DB.assessments.length,
+    milestones:DB.milestones.length,initialAssessments:DB.initialAssessments.length
+  };
+}
+function isSuspiciousDrop(key,newLen){
+  const prev=syncedCounts[key]||0;
+  if(prev<3)return false; // 原本資料量太少，不判定為異常
+  if(newLen===0)return true;
+  return newLen < prev*0.5;
+}
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSel=null;
 let incomeYear=new Date().getFullYear(), incomeMonth=new Date().getMonth();
 let accessToken=null, tokenExpiry=0;
@@ -484,7 +499,8 @@ async function initSheets(){
 // ══════════════════════════════════════════════════
 // LOAD / SAVE
 // ══════════════════════════════════════════════════
-async function loadAll(){
+async function loadAll(opts={}){
+  const interactive = opts.interactive!==false; // true = 手動同步/初次載入, false = 背景自動同步
   const t=await getAccessToken();
   const ranges=['個案!A2:L999','預約!A2:M999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99','初評報告!A2:C999'];
   const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?`+ranges.map(r=>'ranges='+encodeURIComponent(r)).join('&');
@@ -492,14 +508,37 @@ async function loadAll(){
   const json=await res.json();
   if(!json.valueRanges) throw new Error('batchGet failed: '+(json.error?.message||JSON.stringify(json)));
   const [cases,appts,goals,notes,assessments,milestones,settings,initialAssessments]=json.valueRanges.map(r=>r.values||[]);
-  DB.cases=cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',gender:r[3]||'',diagnosis:r[4]||'',diagOther:r[5]||'',guardian:r[6]||'',phone:r[7]||'',sessions:+r[8]||0,status:r[9]||'active',color:r[10]||COLORS[0],note:r[11]||''}));
-  DB.appts=appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'}));
-  DB.goals=goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'}));
-  DB.notes=notes.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',attendance:r[3]||'present',soapS:r[4]||'',soapO:r[5]||'',soapA:r[6]||'',soapP:r[7]||'',activities:r[8]||'',parentNote:r[9]||'',therapist:r[10]||''}));
+  const newData={
+    cases:cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',gender:r[3]||'',diagnosis:r[4]||'',diagOther:r[5]||'',guardian:r[6]||'',phone:r[7]||'',sessions:+r[8]||0,status:r[9]||'active',color:r[10]||COLORS[0],note:r[11]||''})),
+    appts:appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'})),
+    goals:goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'})),
+    notes:notes.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',attendance:r[3]||'present',soapS:r[4]||'',soapO:r[5]||'',soapA:r[6]||'',soapP:r[7]||'',activities:r[8]||'',parentNote:r[9]||'',therapist:r[10]||''})),
+    assessments:assessments.map(r=>({id:r[0],caseId:r[1],tool:r[2]||'',date:r[3]||'',scores:r[4]||'',percentiles:r[5]||'',subtestResults:r[6]||'',notes:r[7]||'',recommendations:r[8]||''})),
+    milestones:milestones.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',ageGroup:r[3]||'',gross:r[4]||'',fine:r[5]||'',cognitive:r[6]||'',social:r[7]||'',selfcare:r[8]||'',notes:r[9]||''})),
+    initialAssessments:(initialAssessments||[]).map(r=>({id:r[0],caseId:r[1],data:r[2]||'{}'}))
+  };
+  const LABELS={cases:'個案',appts:'預約',goals:'目標',notes:'紀錄',assessments:'評估',milestones:'里程碑',initialAssessments:'初評報告'};
+  for(const key of Object.keys(newData)){
+    if(!isSuspiciousDrop(key,newData[key].length)){
+      DB[key]=newData[key];
+      continue;
+    }
+    // 偵測到資料筆數異常驟減
+    if(interactive){
+      const proceed=await new Promise(resolve=>{
+        dangerConfirmDialog(
+          `偵測到雲端讀回的「${LABELS[key]}」資料從 ${syncedCounts[key]} 筆變成 ${newData[key].length} 筆，可能是同步異常造成。是否仍要套用這份資料？`,
+          ()=>resolve(true),
+          ()=>resolve(false)
+        );
+      });
+      if(proceed){DB[key]=newData[key];}
+      else{toast(`⚠️ 已略過套用異常的「${LABELS[key]}」資料，畫面保留原本內容`);}
+    }else{
+      toast(`⚠️ 背景同步發現「${LABELS[key]}」資料量異常減少，已略過更新，請手動同步確認`);
+    }
+  }
   normalizeNoteIds();
-  DB.assessments=assessments.map(r=>({id:r[0],caseId:r[1],tool:r[2]||'',date:r[3]||'',scores:r[4]||'',percentiles:r[5]||'',subtestResults:r[6]||'',notes:r[7]||'',recommendations:r[8]||''}));
-  DB.milestones=milestones.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',ageGroup:r[3]||'',gross:r[4]||'',fine:r[5]||'',cognitive:r[6]||'',social:r[7]||'',selfcare:r[8]||'',notes:r[9]||''}));
-  DB.initialAssessments=(initialAssessments||[]).map(r=>({id:r[0],caseId:r[1],data:r[2]||'{}'}));
   DB.settings={};settings.forEach(r=>{if(r[0])DB.settings[r[0]]=r[1]||'';});
   // default fee settings
   if(!DB.settings.commissionRate)      DB.settings.commissionRate='60';
@@ -511,21 +550,49 @@ async function loadAll(){
   if(!DB.settings.fee_individual_ew)     DB.settings.fee_individual_ew='1500';
   if(!DB.settings.fee_group_day)         DB.settings.fee_group_day='900';
   if(!DB.settings.fee_group_ew)          DB.settings.fee_group_ew='1100';
+  updateSyncedCounts();
 }
  
 const saveAll = (key) => ({
-  cases:  async()=>{await sheetClear('個案!A2:L999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));saveCache();},
-  appts:  async()=>{await sheetClear('預約!A2:M999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot,a.recurring||'once',a.recurringId||'']));},
-  goals:  async()=>{await sheetClear('目標!A2:G999');if(DB.goals.length)await sheetAppend('目標!A2',DB.goals.map(g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status]));},
-  notes:  async()=>{await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));},
-  assess: async()=>{await sheetClear('評估!A2:I999');if(DB.assessments.length)await sheetAppend('評估!A2',DB.assessments.map(a=>[a.id,a.caseId,a.tool,a.date,a.scores,a.percentiles,a.subtestResults||'{}',a.notes,a.recommendations]));},
-  milestones:async()=>{await sheetClear('里程碑!A2:J999');if(DB.milestones.length)await sheetAppend('里程碑!A2',DB.milestones.map(m=>[m.id,m.caseId,m.date,m.ageGroup,m.gross,m.fine,m.cognitive,m.social,m.selfcare,m.notes]));},
+  cases:  async()=>{if(!(await guardWipe('cases','個案',DB.cases))){toast('⚠️ 已取消儲存「個案」，避免覆蓋雲端資料');return;}await sheetClear('個案!A2:L999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));syncedCounts.cases=DB.cases.length;saveCache();},
+  appts:  async()=>{if(!(await guardWipe('appts','預約',DB.appts))){toast('⚠️ 已取消儲存「預約」，避免覆蓋雲端資料');return;}await sheetClear('預約!A2:M999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot,a.recurring||'once',a.recurringId||'']));syncedCounts.appts=DB.appts.length;},
+  goals:  async()=>{if(!(await guardWipe('goals','目標',DB.goals))){toast('⚠️ 已取消儲存「目標」，避免覆蓋雲端資料');return;}await sheetClear('目標!A2:G999');if(DB.goals.length)await sheetAppend('目標!A2',DB.goals.map(g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status]));syncedCounts.goals=DB.goals.length;},
+  notes:  async()=>{if(!(await guardWipe('notes','紀錄',DB.notes))){toast('⚠️ 已取消儲存「紀錄」，避免覆蓋雲端資料');return;}await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));syncedCounts.notes=DB.notes.length;},
+  assess: async()=>{if(!(await guardWipe('assessments','評估',DB.assessments))){toast('⚠️ 已取消儲存「評估」，避免覆蓋雲端資料');return;}await sheetClear('評估!A2:I999');if(DB.assessments.length)await sheetAppend('評估!A2',DB.assessments.map(a=>[a.id,a.caseId,a.tool,a.date,a.scores,a.percentiles,a.subtestResults||'{}',a.notes,a.recommendations]));syncedCounts.assessments=DB.assessments.length;},
+  milestones:async()=>{if(!(await guardWipe('milestones','里程碑',DB.milestones))){toast('⚠️ 已取消儲存「里程碑」，避免覆蓋雲端資料');return;}await sheetClear('里程碑!A2:J999');if(DB.milestones.length)await sheetAppend('里程碑!A2',DB.milestones.map(m=>[m.id,m.caseId,m.date,m.ageGroup,m.gross,m.fine,m.cognitive,m.social,m.selfcare,m.notes]));syncedCounts.milestones=DB.milestones.length;},
   settings:async()=>{await sheetClear('設定!A2:B99');const rows=Object.entries(DB.settings);if(rows.length)await sheetAppend('設定!A2',rows);},
-  initial:async()=>{await sheetClear('初評報告!A2:C999');if(DB.initialAssessments.length)await sheetAppend('初評報告!A2',DB.initialAssessments.map(a=>[a.id,a.caseId,a.data]));}
+  initial:async()=>{if(!(await guardWipe('initialAssessments','初評報告',DB.initialAssessments))){toast('⚠️ 已取消儲存「初評報告」，避免覆蓋雲端資料');return;}await sheetClear('初評報告!A2:C999');if(DB.initialAssessments.length)await sheetAppend('初評報告!A2',DB.initialAssessments.map(a=>[a.id,a.caseId,a.data]));syncedCounts.initialAssessments=DB.initialAssessments.length;}
 })[key];
  
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
  
+function dangerConfirmDialog(msg, onConfirm, onCancel){
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(44,62,80,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center">
+    <div style="font-size:24px;margin-bottom:12px">🚨</div>
+    <div style="font-size:15px;font-weight:600;color:var(--navy);margin-bottom:8px">資料量異常，請確認</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px;white-space:pre-line">${msg}</div>
+    <div style="display:flex;gap:10px">
+      <button id="dcd-cancel" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer;font-family:inherit">取消，保留原資料</button>
+      <button id="dcd-confirm" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">仍要繼續</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('dcd-cancel').onclick=()=>{overlay.remove();onCancel&&onCancel();};
+  document.getElementById('dcd-confirm').onclick=()=>{overlay.remove();onConfirm&&onConfirm();};
+}
+// 寫入雲端前的保護：若目前記憶體中的資料量比最近一次確認同步的量驟減，先跳出確認
+async function guardWipe(key,label,arr){
+  if(!isSuspiciousDrop(key,arr.length))return true;
+  return new Promise(resolve=>{
+    dangerConfirmDialog(
+      `「${label}」資料筆數從上次同步的 ${syncedCounts[key]} 筆，驟降為目前的 ${arr.length} 筆。\n\n這可能是資料還沒載入完成、或同步發生問題造成。\n\n若繼續，雲端上原本的資料將被目前這份較少的資料覆蓋。`,
+      ()=>resolve(true),
+      ()=>resolve(false)
+    );
+  });
+}
 function confirmDialog(msg, onConfirm){
   // Create overlay
   const overlay = document.createElement('div');
@@ -2630,6 +2697,7 @@ async function boot(){
   // Step 1: Show cached data instantly if available
   const hasCached=loadCache();
   if(hasCached){
+    updateSyncedCounts(); // 以快取內容作為異常驟減判斷的基準
     document.getElementById('loading').style.display='none';
     document.getElementById('app').style.display='flex';
     render();
@@ -2663,11 +2731,12 @@ async function boot(){
 async function syncInBackground(){
   try{
     await getAccessToken();
-    await loadAll();
+    await loadAll({interactive:false}); // 背景同步：發現異常驟減時只跳提示、不覆蓋畫面
     saveCache();
     render(); // refresh UI with latest data
   }catch(e){
     console.warn('Background sync failed',e);
+    toast('⚠️ 背景同步失敗，目前顯示的可能是舊資料');
   }
 }
 boot();
