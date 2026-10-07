@@ -436,11 +436,35 @@ async function getAccessToken(){
 // ══════════════════════════════════════════════════
 // SHEETS API
 // ══════════════════════════════════════════════════
-async function sheetGet(range){const t=await getAccessToken();const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,{headers:{Authorization:`Bearer ${t}`}});return(await r.json()).values||[];}
-async function sheetSet(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
-async function sheetAppend(range,values){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});}
-async function sheetClear(range){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,{method:'POST',headers:{Authorization:`Bearer ${t}`}});}
-async function sheetBatchUpdate(requests){const t=await getAccessToken();await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({requests})});}
+// 所有 Sheets 呼叫都會檢查回應狀態；遇到 429 / 5xx / 網路錯誤會自動重試，仍失敗就丟出錯誤（不再靜默失敗）
+async function sheetFetch(url,opts={},label='sheet'){
+  let lastErr;
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const t=await getAccessToken();
+      const r=await fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:`Bearer ${t}`}});
+      if(r.ok)return r;
+      if(r.status===401){accessToken=null;tokenExpiry=0;}
+      if(r.status===401||r.status===429||r.status>=500){
+        lastErr=new Error(`${label} failed ${r.status}`);
+      }else{
+        let msg='';try{msg=(await r.json())?.error?.message||'';}catch(e){}
+        throw new Error(`${label} failed ${r.status} ${msg}`);
+      }
+    }catch(e){
+      if(e&&/failed (4\d\d)/.test(e.message)&&!/failed (401|429)/.test(e.message))throw e;
+      lastErr=e;
+    }
+    await new Promise(res=>setTimeout(res,600*(attempt+1)));
+  }
+  throw lastErr||new Error(label+' failed');
+}
+const SHEETS_BASE=()=>`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+async function sheetGet(range){const r=await sheetFetch(`${SHEETS_BASE()}/values/${encodeURIComponent(range)}`,{},'get');return(await r.json()).values||[];}
+async function sheetSet(range,values){await sheetFetch(`${SHEETS_BASE()}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})},'set');}
+async function sheetAppend(range,values){await sheetFetch(`${SHEETS_BASE()}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})},'append');}
+async function sheetClear(range){await sheetFetch(`${SHEETS_BASE()}/values/${encodeURIComponent(range)}:clear`,{method:'POST'},'clear');}
+async function sheetBatchUpdate(requests){await sheetFetch(`${SHEETS_BASE()}:batchUpdate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requests})},'batchUpdate');}
 async function ensureTrashSheet(){
   const t=await getAccessToken();
   const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
@@ -518,6 +542,13 @@ async function loadAll(opts={}){
     initialAssessments:(initialAssessments||[]).map(r=>({id:r[0],caseId:r[1],data:r[2]||'{}'}))
   };
   const LABELS={cases:'個案',appts:'預約',goals:'目標',notes:'紀錄',assessments:'評估',milestones:'里程碑',initialAssessments:'初評報告'};
+  // 去除雲端上因重複寫入造成的重複資料（依 id；紀錄則比對完整內容）
+  const dupFound=[];
+  for(const key of Object.keys(newData)){
+    const before=newData[key].length;
+    newData[key]=key==='notes'?dedupeExact(newData[key]):dedupeById(newData[key]);
+    if(newData[key].length<before)dupFound.push(key);
+  }
   for(const key of Object.keys(newData)){
     if(!isSuspiciousDrop(key,newData[key].length)){
       DB[key]=newData[key];
@@ -551,17 +582,66 @@ async function loadAll(opts={}){
   if(!DB.settings.fee_group_day)         DB.settings.fee_group_day='900';
   if(!DB.settings.fee_group_ew)          DB.settings.fee_group_ew='1100';
   updateSyncedCounts();
+  // 若雲端發現重複資料，把已去重的資料寫回雲端（自動清理一次）
+  if(dupFound.length){
+    const keyMap={cases:'cases',appts:'appts',goals:'goals',notes:'notes',assessments:'assess',milestones:'milestones',initialAssessments:'initial'};
+    dupFound.forEach(k=>{
+      saveAll(keyMap[k])().then(()=>toast(`🧹 已自動清除「${LABELS[k]}」的重複資料`)).catch(e=>console.warn('Dedupe save failed',e));
+    });
+  }
 }
  
+// 依 id 去重（保留第一筆；沒有 id 的資料不處理）
+function dedupeById(arr){
+  const seen=new Set();const out=[];
+  for(const x of arr){
+    const id=x&&x.id;
+    if(id){if(seen.has(String(id)))continue;seen.add(String(id));}
+    out.push(x);
+  }
+  return out;
+}
+// 紀錄(notes)的 id 有另外的修復機制，只移除「內容完全相同」的重複列
+function dedupeExact(arr){
+  const seen=new Set();const out=[];
+  for(const x of arr){const k=JSON.stringify(x);if(seen.has(k))continue;seen.add(k);out.push(x);}
+  return out;
+}
+
+// 同一張表的儲存一律排隊、依序執行，避免兩次儲存互相交錯造成重複寫入
+const saveQueues={};
+function queuedSave(key,fn){
+  const prev=saveQueues[key]||Promise.resolve();
+  const run=prev.catch(()=>{}).then(fn);
+  saveQueues[key]=run.catch(()=>{});
+  return run;
+}
+// 以「覆寫」取代「先清空再附加」：先把完整資料寫到 A2 起的範圍，再只清除多出來的尾端列。
+// 任何一步失敗都不會造成資料重複（最壞情況是保留舊資料）。
+async function writeSheetRows(sheet,lastCol,rows){
+  if(rows.length){
+    await sheetSet(`${sheet}!A2:${lastCol}${rows.length+1}`,rows);
+    if(rows.length+2<=999)await sheetClear(`${sheet}!A${rows.length+2}:${lastCol}999`);
+  }else{
+    await sheetClear(`${sheet}!A2:${lastCol}999`);
+  }
+}
+async function saveTable(key,sheet,lastCol,label,arr,mapRow,syncKey){
+  return queuedSave(key,async()=>{
+    if(syncKey&&!(await guardWipe(syncKey,label,arr))){toast(`⚠️ 已取消儲存「${label}」，避免覆蓋雲端資料`);return;}
+    await writeSheetRows(sheet,lastCol,arr.map(mapRow));
+    if(syncKey)syncedCounts[syncKey]=arr.length;
+  });
+}
 const saveAll = (key) => ({
-  cases:  async()=>{if(!(await guardWipe('cases','個案',DB.cases))){toast('⚠️ 已取消儲存「個案」，避免覆蓋雲端資料');return;}await sheetClear('個案!A2:L999');if(DB.cases.length)await sheetAppend('個案!A2',DB.cases.map(c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note]));syncedCounts.cases=DB.cases.length;saveCache();},
-  appts:  async()=>{if(!(await guardWipe('appts','預約',DB.appts))){toast('⚠️ 已取消儲存「預約」，避免覆蓋雲端資料');return;}await sheetClear('預約!A2:M999');if(DB.appts.length)await sheetAppend('預約!A2',DB.appts.map(a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot,a.recurring||'once',a.recurringId||'']));syncedCounts.appts=DB.appts.length;},
-  goals:  async()=>{if(!(await guardWipe('goals','目標',DB.goals))){toast('⚠️ 已取消儲存「目標」，避免覆蓋雲端資料');return;}await sheetClear('目標!A2:G999');if(DB.goals.length)await sheetAppend('目標!A2',DB.goals.map(g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status]));syncedCounts.goals=DB.goals.length;},
-  notes:  async()=>{if(!(await guardWipe('notes','紀錄',DB.notes))){toast('⚠️ 已取消儲存「紀錄」，避免覆蓋雲端資料');return;}await sheetClear('紀錄!A2:K999');if(DB.notes.length)await sheetAppend('紀錄!A2',DB.notes.map(n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist]));syncedCounts.notes=DB.notes.length;},
-  assess: async()=>{if(!(await guardWipe('assessments','評估',DB.assessments))){toast('⚠️ 已取消儲存「評估」，避免覆蓋雲端資料');return;}await sheetClear('評估!A2:I999');if(DB.assessments.length)await sheetAppend('評估!A2',DB.assessments.map(a=>[a.id,a.caseId,a.tool,a.date,a.scores,a.percentiles,a.subtestResults||'{}',a.notes,a.recommendations]));syncedCounts.assessments=DB.assessments.length;},
-  milestones:async()=>{if(!(await guardWipe('milestones','里程碑',DB.milestones))){toast('⚠️ 已取消儲存「里程碑」，避免覆蓋雲端資料');return;}await sheetClear('里程碑!A2:J999');if(DB.milestones.length)await sheetAppend('里程碑!A2',DB.milestones.map(m=>[m.id,m.caseId,m.date,m.ageGroup,m.gross,m.fine,m.cognitive,m.social,m.selfcare,m.notes]));syncedCounts.milestones=DB.milestones.length;},
-  settings:async()=>{await sheetClear('設定!A2:B99');const rows=Object.entries(DB.settings);if(rows.length)await sheetAppend('設定!A2',rows);},
-  initial:async()=>{if(!(await guardWipe('initialAssessments','初評報告',DB.initialAssessments))){toast('⚠️ 已取消儲存「初評報告」，避免覆蓋雲端資料');return;}await sheetClear('初評報告!A2:C999');if(DB.initialAssessments.length)await sheetAppend('初評報告!A2',DB.initialAssessments.map(a=>[a.id,a.caseId,a.data]));syncedCounts.initialAssessments=DB.initialAssessments.length;}
+  cases:  async()=>{await saveTable('cases','個案','L','個案',DB.cases,c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note],'cases');saveCache();},
+  appts:  async()=>{await saveTable('appts','預約','M','預約',DB.appts,a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot,a.recurring||'once',a.recurringId||''],'appts');},
+  goals:  async()=>{await saveTable('goals','目標','G','目標',DB.goals,g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status],'goals');},
+  notes:  async()=>{await saveTable('notes','紀錄','K','紀錄',DB.notes,n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist],'notes');},
+  assess: async()=>{await saveTable('assess','評估','I','評估',DB.assessments,a=>[a.id,a.caseId,a.tool,a.date,a.scores,a.percentiles,a.subtestResults||'{}',a.notes,a.recommendations],'assessments');},
+  milestones:async()=>{await saveTable('milestones','里程碑','J','里程碑',DB.milestones,m=>[m.id,m.caseId,m.date,m.ageGroup,m.gross,m.fine,m.cognitive,m.social,m.selfcare,m.notes],'milestones');},
+  settings:async()=>{await queuedSave('settings',async()=>{await writeSheetRows('設定','B',Object.entries(DB.settings));});},
+  initial:async()=>{await saveTable('initial','初評報告','C','初評報告',DB.initialAssessments,a=>[a.id,a.caseId,a.data],'initialAssessments');}
 })[key];
  
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
@@ -2669,6 +2749,8 @@ function loadCache(){
     const {ts,db}=JSON.parse(raw);
     if(Date.now()-ts>CACHE_TTL)return false;
     DB=db;
+    ['cases','appts','goals','assessments','milestones','initialAssessments'].forEach(k=>{if(Array.isArray(DB[k]))DB[k]=dedupeById(DB[k]);});
+    if(Array.isArray(DB.notes))DB.notes=dedupeExact(DB.notes);
     normalizeNoteIds();
     return true;
   }catch(e){return false;}
