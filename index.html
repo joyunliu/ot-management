@@ -526,14 +526,14 @@ async function initSheets(){
 async function loadAll(opts={}){
   const interactive = opts.interactive!==false; // true = 手動同步/初次載入, false = 背景自動同步
   const t=await getAccessToken();
-  const ranges=['個案!A2:L999','預約!A2:M999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99','初評報告!A2:C999'];
+  const ranges=['個案!A2:N999','預約!A2:M999','目標!A2:G999','紀錄!A2:K999','評估!A2:I999','里程碑!A2:J999','設定!A2:B99','初評報告!A2:C999'];
   const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?`+ranges.map(r=>'ranges='+encodeURIComponent(r)).join('&');
   const res=await fetch(url,{headers:{Authorization:`Bearer ${t}`}});
   const json=await res.json();
   if(!json.valueRanges) throw new Error('batchGet failed: '+(json.error?.message||JSON.stringify(json)));
   const [cases,appts,goals,notes,assessments,milestones,settings,initialAssessments]=json.valueRanges.map(r=>r.values||[]);
   const newData={
-    cases:cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',gender:r[3]||'',diagnosis:r[4]||'',diagOther:r[5]||'',guardian:r[6]||'',phone:r[7]||'',sessions:+r[8]||0,status:r[9]||'active',color:r[10]||COLORS[0],note:r[11]||''})),
+    cases:cases.map(r=>({id:r[0],name:r[1]||'',dob:r[2]||'',gender:r[3]||'',diagnosis:r[4]||'',diagOther:r[5]||'',guardian:r[6]||'',phone:r[7]||'',sessions:+r[8]||0,status:r[9]||'active',color:r[10]||COLORS[0],note:r[11]||'',enrolled:r[12]||'',deferred:r[13]||''})),
     appts:appts.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',time:r[3]||'',duration:+r[4]||50,fee:+r[5]||0,note:r[6]||'',status:r[7]||'upcoming',type:r[8]||'individual',groupSize:+r[9]||1,timeSlot:r[10]||'weekday'})),
     goals:goals.map(r=>({id:r[0],caseId:r[1],area:r[2]||'',goal:r[3]||'',target:r[4]||'',progress:+r[5]||0,status:r[6]||'active'})),
     notes:notes.map(r=>({id:r[0],caseId:r[1],date:r[2]||'',attendance:r[3]||'present',soapS:r[4]||'',soapO:r[5]||'',soapA:r[6]||'',soapP:r[7]||'',activities:r[8]||'',parentNote:r[9]||'',therapist:r[10]||''})),
@@ -634,7 +634,7 @@ async function saveTable(key,sheet,lastCol,label,arr,mapRow,syncKey){
   });
 }
 const saveAll = (key) => ({
-  cases:  async()=>{await saveTable('cases','個案','L','個案',DB.cases,c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note],'cases');saveCache();},
+  cases:  async()=>{await saveTable('cases','個案','N','個案',DB.cases,c=>[c.id,c.name,c.dob,c.gender||'',c.diagnosis,c.diagOther||'',c.guardian,c.phone,c.sessions,c.status,c.color,c.note,c.enrolled||'',c.deferred||''],'cases');saveCache();},
   appts:  async()=>{await saveTable('appts','預約','M','預約',DB.appts,a=>[a.id,a.caseId,a.date,a.time,a.duration,a.fee,a.note,a.status,a.type,a.groupSize,a.timeSlot,a.recurring||'once',a.recurringId||''],'appts');},
   goals:  async()=>{await saveTable('goals','目標','G','目標',DB.goals,g=>[g.id,g.caseId,g.area,g.goal,g.target,g.progress,g.status],'goals');},
   notes:  async()=>{await saveTable('notes','紀錄','K','紀錄',DB.notes,n=>[n.id,n.caseId,n.date,n.attendance,n.soapS,n.soapO,n.soapA,n.soapP,n.activities,n.parentNote,n.therapist],'notes');},
@@ -705,6 +705,34 @@ function typeLabel(type,groupSize){return type==='group'?`👥團體${groupSize}
 function toast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 function age(dob){if(!dob)return'–';const d=new Date(dob),n=new Date();let y=n.getFullYear()-d.getFullYear(),m=n.getMonth()-d.getMonth();if(n.getDate()<d.getDate())m--;if(m<0){y--;m+=12;}return y+'歲'+m+'個月';}
 function ageMonths(dob){if(!dob)return 0;const d=new Date(dob),n=new Date();return(n.getFullYear()-d.getFullYear())*12+(n.getMonth()-d.getMonth());}
+
+// 就學階段（以台灣學年制：8/1 起算新學年，9/1 前滿 N 足歲為入學年齡）
+function schoolStageLabel(dob,deferred){
+  if(!dob)return'';
+  const m=String(dob).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(!m)return'';
+  const by=+m[1],bm=+m[2],bd=+m[3],now=new Date();
+  const sy=now.getMonth()>=7?now.getFullYear():now.getFullYear()-1; // 目前學年度起始年
+  let a=sy-by;if(bm>9||(bm===9&&bd>1))a--;            // 學年 9/1 當天的足歲
+  if(a<2)return'未達入學年齡';
+  if(deferred)a=Math.max(a-1,2);                       // 緩讀：延後一年
+  const names=['幼幼班','小班','中班','大班','小一','小二','小三','小四','小五','小六','國一','國二','國三'];
+  return names[a-2]||'高中以上';
+}
+function schoolTag(c){
+  if(!c)return'';
+  if(c.enrolled==='yes'){const st=schoolStageLabel(c.dob,c.deferred==='yes');return st?st+(c.deferred==='yes'?'（緩讀）':''):'就學階段未知';}
+  if(c.enrolled==='no')return'未就學';
+  return'就學未設定';
+}
+function updateSchoolPreview(){
+  const en=document.getElementById('cf-enrolled')?.value;
+  const w=document.getElementById('cf-deferred-wrap');if(w)w.style.display=en==='yes'?'block':'none';
+  const pv=document.getElementById('cf-school-preview');if(!pv)return;
+  if(en!=='yes'){pv.textContent=en==='no'?'目前：未就學':'';return;}
+  const dob=document.getElementById('cf-dob')?.value,df=document.getElementById('cf-deferred')?.value==='yes';
+  if(!dob){pv.textContent='請先填寫生日，系統會自動計算就學階段';return;}
+  pv.textContent='目前就學階段：'+schoolStageLabel(dob,df)+(df?'（緩讀）':'');
+}
 function caseColor(id){return DB.cases.find(x=>x.id===id)?.color||COLORS[0];}
 function caseName(id){return DB.cases.find(x=>x.id===id)?.name||'–';}
 function statusLabel(status){return status==='active'?'治療中':status==='pending'?'待初評':'暫停';}
@@ -913,7 +941,7 @@ function renderCaseCards(list){
       <span class="tag" style="background:${st.bg};color:${st.color}">${statusLabel(c.status)}</span></div>
     </div>
     <div style="font-size:11px;color:var(--navy-l);margin-bottom:2px">🔍 ${c.diagOther||c.diagnosis||'–'}</div>
-    <div style="font-size:11px;color:var(--muted)">${age(c.dob)} · ${c.sessions}次</div>
+    <div style="font-size:11px;color:var(--muted)">${age(c.dob)} · ${schoolTag(c)}</div>
   </div>`;
   }).join('');
 }
@@ -937,7 +965,7 @@ function renderCaseDetail(){
  
   if(currentCaseTab==='info'){
     body=`<div class="card info-grid">
-      ${[['姓名',c.name],['性別',c.gender==='male'?'男':c.gender==='female'?'女':'–'],['診斷',c.diagOther||c.diagnosis||'–'],['生日',c.dob||'–'],['年齡',age(c.dob)],['月齡',`${ageMonths(c.dob)} 個月`],['家長',c.guardian||'–'],['電話',c.phone||'–'],['累計次數',`${c.sessions} 次`],['狀態',c.status==='active'?'治療中':c.status==='pending'?'待初評':'暫停'],['備註',c.note||'–']].map(([k,v])=>`<div><div class="ik">${k}</div><div class="iv">${v}</div></div>`).join('')}
+      ${[['姓名',c.name],['性別',c.gender==='male'?'男':c.gender==='female'?'女':'–'],['診斷',c.diagOther||c.diagnosis||'–'],['生日',c.dob||'–'],['年齡',age(c.dob)],['月齡',`${ageMonths(c.dob)} 個月`],['就學階段',schoolTag(c)],['家長',c.guardian||'–'],['電話',c.phone||'–'],['累計次數',`${c.sessions} 次`],['狀態',c.status==='active'?'治療中':c.status==='pending'?'待初評':'暫停'],['備註',c.note||'–']].map(([k,v])=>`<div><div class="ik">${k}</div><div class="iv">${v}</div></div>`).join('')}
     </div>
     <div class="btn-row">
       <button class="btn btn-border" onclick="openCaseModal('${c.id}')">✏️ 編輯</button>
@@ -1077,7 +1105,7 @@ function renderCaseDetail(){
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
     <div class="av" style="width:48px;height:48px;background:${c.color};font-size:20px">${c.name[0]||'?'}</div>
     <div><div style="font-family:var(--fh);font-size:20px">${c.name}</div>
-    <div style="font-size:11px;color:var(--muted)">${c.diagnosis||'–'} · ${age(c.dob)} · ${c.sessions}次 · $${totalInc.toLocaleString()}</div></div>
+    <div style="font-size:11px;color:var(--muted)">${c.diagnosis||'–'} · ${age(c.dob)} · ${schoolTag(c)} · $${totalInc.toLocaleString()}</div></div>
   </div>
   <div class="tabs">${TABS.map(([k,l])=>`<button class="tab${currentCaseTab===k?' active':''}" onclick="currentCaseTab='${k}';render()">${l}</button>`).join('')}</div>
   ${body}`;
@@ -1345,7 +1373,7 @@ function openCaseModal(editId=null){
     </div>
   </div>
   <div class="frow">
-    <div class="fg"><label class="fl">生日</label><input class="fi" type="date" id="cf-dob" value="${c?.dob||''}"></div>
+    <div class="fg"><label class="fl">生日</label><input class="fi" type="date" id="cf-dob" value="${c?.dob||''}" onchange="updateSchoolPreview()"></div>
     <div class="fg"><label class="fl">狀態</label>
       <select class="fsel" id="cf-status">
         <option value="pending"${c?.status==='pending'?' selected':''}>待初評</option>
@@ -1354,6 +1382,21 @@ function openCaseModal(editId=null){
       </select>
     </div>
   </div>
+  <div class="frow">
+    <div class="fg"><label class="fl">是否已就學</label>
+      <select class="fsel" id="cf-enrolled" onchange="updateSchoolPreview()">
+        <option value="yes"${(c?(c.enrolled==='yes'||(!c.enrolled&&!!c.dob&&!!schoolStageLabel(c.dob,false)&&schoolStageLabel(c.dob,false)!=='未達入學年齡')):true)?' selected':''}>已就學</option>
+        <option value="no"${(c&&(c.enrolled==='no'||(!c.enrolled&&(!c.dob||schoolStageLabel(c.dob,false)==='未達入學年齡'))))?' selected':''}>未就學</option>
+      </select>
+    </div>
+    <div class="fg" id="cf-deferred-wrap"><label class="fl">是否緩讀</label>
+      <select class="fsel" id="cf-deferred" onchange="updateSchoolPreview()">
+        <option value="no"${c?.deferred==='yes'?'':' selected'}>否</option>
+        <option value="yes"${c?.deferred==='yes'?' selected':''}>是（延後一年）</option>
+      </select>
+    </div>
+  </div>
+  <div id="cf-school-preview" style="font-size:12px;color:var(--sage-d);background:var(--sage-l);border-radius:10px;padding:8px 12px;margin:-4px 0 12px;font-weight:600"></div>
   <div class="fg"><label class="fl">個案代表色</label>
     <input class="fi" type="color" id="cf-color" value="${c?.color||COLORS[DB.cases.length%COLORS.length]}" style="height:42px;padding:6px">
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
@@ -1375,7 +1418,7 @@ function openCaseModal(editId=null){
   </div>
   <div class="fg"><label class="fl">備註</label><textarea class="fta" id="cf-note">${c?.note||''}</textarea></div>
   <button class="btn btn-sage btn-full" onclick="submitCase('${editId||''}')">💾 ${c?'儲存修改':'建立個案'}</button>`;
-  openModal('modal-case');
+  openModal('modal-case');updateSchoolPreview();
 }
  
 async function submitCase(editId){
@@ -1383,7 +1426,7 @@ async function submitCase(editId){
   if(!name){toast('❌ 請輸入姓名');return;}
   const diagSel=document.getElementById('cf-diag-sel').value;
   const diagOther=diagSel==='其他（自行輸入）'?document.getElementById('cf-diag-other').value:diagSel;
-  const data={id:editId||newId(),name,dob:document.getElementById('cf-dob').value,gender:document.getElementById('cf-gender').value,diagnosis:diagSel,diagOther:diagOther,guardian:document.getElementById('cf-guardian').value,phone:document.getElementById('cf-phone').value,status:document.getElementById('cf-status').value,color:document.getElementById('cf-color')?.value||COLORS[0],note:document.getElementById('cf-note').value};
+  const data={id:editId||newId(),name,dob:document.getElementById('cf-dob').value,gender:document.getElementById('cf-gender').value,diagnosis:diagSel,diagOther:diagOther,guardian:document.getElementById('cf-guardian').value,phone:document.getElementById('cf-phone').value,status:document.getElementById('cf-status').value,color:document.getElementById('cf-color')?.value||COLORS[0],note:document.getElementById('cf-note').value,enrolled:document.getElementById('cf-enrolled').value,deferred:document.getElementById('cf-enrolled').value==='yes'?document.getElementById('cf-deferred').value:'no'};
   if(editId){const idx=DB.cases.findIndex(c=>c.id===editId);data.sessions=DB.cases[idx].sessions;DB.cases[idx]=data;if(currentCase?.id===editId)currentCase=data;}
   else{data.sessions=0;DB.cases.push(data);}
   closeModal('modal-case');toast('💾 儲存中…');await saveAll('cases')();toast('✅ 已儲存');render();
