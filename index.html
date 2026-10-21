@@ -865,10 +865,17 @@ function renderDashboard(){
   <div class="card">
     <div class="stitle">📌 近期預約</div>
     ${upcoming.length===0?'<div class="empty"><div class="ei">📭</div>暫無預約</div>':upcoming.map(a=>`
-    <div class="card-row" style="cursor:pointer" onclick="navToCase('${a.caseId}')">
-      <div class="av" style="width:36px;height:36px;background:${caseColor(a.caseId)};font-size:14px">${caseName(a.caseId)[0]||'?'}</div>
-      <div style="flex:1"><div style="font-weight:600;font-size:13px">${caseName(a.caseId)}</div><div style="font-size:11px;color:var(--muted)">${typeLabel(a.type,a.groupSize)} · ${a.note||'–'}</div></div>
-      <div style="text-align:right"><div style="font-size:12px;font-weight:600;color:var(--navy-l)">${a.date.slice(5)}</div><div style="font-size:11px;color:var(--muted)">${a.time}</div></div>
+    <div class="card-row" style="flex-wrap:wrap;row-gap:8px">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="navToCase('${a.caseId}')">
+        <div class="av" style="width:36px;height:36px;background:${caseColor(a.caseId)};font-size:14px">${caseName(a.caseId)[0]||'?'}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${caseName(a.caseId)}</div><div style="font-size:11px;color:var(--muted)">${typeLabel(a.type,a.groupSize)} · ${a.note||'–'}</div></div>
+        <div style="text-align:right"><div style="font-size:12px;font-weight:600;color:var(--navy-l)">${a.date.slice(5)}</div><div style="font-size:11px;color:var(--muted)">${a.time}</div></div>
+      </div>
+      <div style="display:flex;gap:6px;width:100%;justify-content:flex-end">
+        <button class="btn btn-sage btn-sm" onclick="toggleApptStatus('${a.id}')">✅ 完成</button>
+        <button class="btn btn-border btn-sm" onclick="openEditApptModal('${a.id}')">✏️ 編輯</button>
+        <button class="btn btn-red btn-sm" onclick="deleteAppt('${a.id}')">🗑 刪除</button>
+      </div>
     </div>`).join('')}
   </div>
   <div class="card">
